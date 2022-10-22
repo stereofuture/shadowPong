@@ -10,34 +10,40 @@
 /*
 TODOS
 4. Animate paddles
-8. Add settings
-8a. Add difficulty (speed modifier, length modifier, frequency of objects)
-8b. Add control changes
-8c. Add glitch protection
+8a. Implement difficulty (speed modifier, length modifier, frequency of objects)
+8b. Implement control changes
 9. Add story messages
 11. Add other obstacles (blocks, flips)
 15. Add scroll speed
 15a. Synch music with scroll speed
 16. Re-implement char overflowable_ball_vel
 17. Clean up
+17a. Align variable, asset and sprite naming
 18. Add level count text
 19. Figure out paddle top 10.0f requirement
 */ 
 
 QGSprite_t bg, attempts, pinkPaddle, bluePaddle, ball, endNode, endBall;
-QGSprite_t startScreen, packetlost, gameover, runCompleteScreen, gameCompleteScreen;
+QGSprite_t startScreen, settingsScreen
+, packetlost, gameover, runCompleteScreen, gameCompleteScreen;
 QGSprite_t credits[5];
 QGSprite_t score[10];
 QGSprite_t animBall[7];
 QGSprite_t animBall0[7];
 QGSprite_t animBall1[7];
 QGSprite_t animBall2[7];
+QGSprite_t run[5];
+QGSprite_t mission[3];
+
 
 QGAudioClip_t ping, pong, fail, clear, levelMusic1, levelMusic2;
 
 QGTimer timer;
 
 float ball_y, ball_x;
+float ball0_y, ball0_x;
+float ball1_y, ball1_x;
+float ball2_y, ball2_x;
 float pinkPaddle_y, bluePaddle_y;
 float endNode_y, endNode_x;
 float ball_vel;
@@ -53,10 +59,14 @@ bool paused;
 bool gameComplete;
 bool loadedNotStarted;
 bool viewingCredits;
+bool viewingSettings;
+bool viewingStart;
 float run_length;
-int currentLevel;
+int currentRun;
+int currentMission;
 int remainingAttempts;
-int selectedOption;
+int selectedStartOption;
+int selectedSettingsOption;
 float ball_vel;
 
 float paddle_height = 50.0f;
@@ -70,7 +80,12 @@ float ball_height = 7.0f;
 float vel_max = 300.0f;
 int collision_delay = 0;
 int currentCredit = 0;
+int difficultyLevel = 1;
 float end_animation_length = 5.0f;
+
+bool faceControls = false;
+bool allowGlitch = false;
+bool screenChange = false;
 
 int curr_ball_anim = 0;
 float anim_time = 0.0f;
@@ -139,11 +154,10 @@ void reset_game() {
     ball_vel = 0.0f;
     vel_mod = 1.0f;
     endNode_y = 400.0f;
-    currentLevel = 1;
-    remainingAttempts = 3;
     run_length = 5.0f;
     scroll_bg = false;
-    selectedOption = 1;
+    selectedStartOption = 1;
+    selectedSettingsOption = 1;
     gameComplete = false;
     viewingCredits = false;
     currentCredit = 0;
@@ -154,6 +168,10 @@ void reset_game() {
 void reset_game_completely() {
     reset_game();
     loadedNotStarted = true;
+    viewingStart = true;
+    currentMission = 1;
+    remainingAttempts = 3;
+    currentRun = 1;
 
     QuickGame_Audio_Play(levelMusic2, 1);
 }
@@ -170,9 +188,9 @@ void move_to_next_level() {
     vel_mod = 1.0f;
     endNode_y = 400.0f;
     endNode_x = 160;
-    currentLevel++;
+    currentRun++;
     remainingAttempts = 3;
-    run_length = 5.0f + (currentLevel * 1.0f);
+    run_length = 5.0f + (currentRun * 1.0f);
 }
 
 void checkDeath() {
@@ -185,9 +203,14 @@ void checkDeath() {
 
 void checkVictory() {
     runComplete = true;
-    currentLevel++;
-    if(currentLevel > 5) {
+    currentRun++;
+    if(currentRun > 5) {
+        currentMission++;
+        currentRun = 1;
         gameComplete = true;
+    }
+    if(currentMission > 2) {
+        //TODO: Add actual game complete;
     }
 }
 
@@ -202,6 +225,15 @@ void animate_endNode() {
 void animation_update() {
     animBall[curr_ball_anim]->transform.position.y = ball_y;
     animBall[curr_ball_anim]->transform.position.x = ball_x;
+
+    animBall0[curr_ball_anim]->transform.position.y = ball0_y;
+    animBall0[curr_ball_anim]->transform.position.x = ball0_x;
+
+    animBall1[curr_ball_anim]->transform.position.y = ball1_y;
+    animBall1[curr_ball_anim]->transform.position.x = ball1_x;
+    
+    animBall2[curr_ball_anim]->transform.position.y = ball2_y;
+    animBall2[curr_ball_anim]->transform.position.x = ball2_x;
 
     pinkPaddle->transform.position.y = pinkPaddle_y;
     bluePaddle->transform.position.y = bluePaddle_y;
@@ -254,20 +286,39 @@ void update_ball(double dt) {
     }
 }
 
-void update_selected_option() {
-    if (selectedOption == 1) {
+void update_selected_start_option() {
+    if (selectedStartOption == 1) {
         ball_x = 174;
         ball_y = 130;
     }
 
-    if (selectedOption == 2) {
+    if (selectedStartOption == 2) {
         ball_x = 148;
         ball_y = 116;
     }
 
-    if (selectedOption == 3) {
+    if (selectedStartOption == 3) {
         ball_x = 160;
         ball_y = 102;
+    }
+}
+
+void update_selected_settings_option() {
+    ball_x = 14;
+    if (selectedSettingsOption == 1) {
+        ball_y = 175;
+    }
+    if (selectedSettingsOption == 2) {
+        ball_y = 160;
+    }
+    if (selectedSettingsOption == 3) {
+        ball_y = 145;
+    }
+    if (selectedSettingsOption == 4) {
+        ball_y = 130;
+    }
+    if (selectedSettingsOption == 5) {
+        ball_y = 115;
     }
 }
 
@@ -278,60 +329,165 @@ void update(double dt) {
     animation_update();
 
     if(loadedNotStarted) {
-        if(QuickGame_Button_Pressed(PSP_CTRL_UP)) {
-            QuickGame_Audio_Play(ping, 0);
-            selectedOption--;
+
+        if(viewingSettings && !viewingCredits && !viewingStart) {
+            ball0_y = 175;
+            ball1_y = 160;
+            ball2_y = 145;
+            if(QuickGame_Button_Pressed(PSP_CTRL_UP)) {
+                QuickGame_Audio_Play(ping, 0);
+                selectedSettingsOption--;
+            }
+
+            if(QuickGame_Button_Pressed(PSP_CTRL_DOWN)) {
+                QuickGame_Audio_Play(pong, 0);
+                selectedSettingsOption++;
+            }
+
+            if(selectedSettingsOption > 5) {
+                selectedSettingsOption = 1;
+            }
+
+            if(selectedSettingsOption < 1) {
+                selectedSettingsOption = 5;
+            }
+
+            update_selected_settings_option();
+
+            if((QuickGame_Button_Pressed(PSP_CTRL_CROSS) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 1) {
+                allowGlitch = !allowGlitch;
+            }
+
+            if(allowGlitch) {
+                ball0_x = 188;
+            } else {
+                ball0_x = 296;
+            }
+
+            if(selectedSettingsOption == 2) {
+                if((QuickGame_Button_Pressed(PSP_CTRL_CROSS) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT))) {
+                    difficultyLevel++;
+                }
+                if (QuickGame_Button_Pressed(PSP_CTRL_LEFT)){
+                    difficultyLevel--;
+                }
+                if (difficultyLevel > 3) {
+                    difficultyLevel = 1;
+                }
+                if (difficultyLevel < 1) {
+                    difficultyLevel = 3;
+                }
+            }
+
+            if (difficultyLevel == 1) {
+                ball1_x = 258;
+            }
+
+            if (difficultyLevel == 2) {
+                ball1_x = 316;
+            }
+
+            if (difficultyLevel == 3) {
+                ball1_x = 386;
+            }
+
+        
+            if((QuickGame_Button_Pressed(PSP_CTRL_CROSS) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 3) {
+                    faceControls = !faceControls;
+            }
+
+            if(!faceControls) {
+                ball2_x = 246;
+            } else {
+                ball2_x = 376;
+            }
+
+
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
+                viewingSettings = false;
+                viewingStart = true;
+                selectedSettingsOption = 1;
+                ball0_y = -20;
+                ball1_y = -20;
+                ball2_y = -20;
+            }
         }
 
-        if(QuickGame_Button_Pressed(PSP_CTRL_DOWN)) {
-            QuickGame_Audio_Play(pong, 0);
-            selectedOption++;
-        }
-
-        if(selectedOption > 3) {
-            selectedOption = 1;
-        }
-
-        if(selectedOption < 1) {
-            selectedOption = 3;
-        }
-
-        update_selected_option();
-
-        if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedOption == 1) {
-            loadedNotStarted = false;
-        }
-
-        if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedOption == 3 && !viewingCredits) {
-            viewingCredits = true;
-            currentCredit = -1;
-        }
-
-        if(viewingCredits) {
+        if(viewingCredits && !viewingSettings && !viewingStart && !screenChange) {
             ball_x = -20;
             ball_y = -20;
             if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) {
                 currentCredit++;
                 if(currentCredit > 4) {
                     viewingCredits = false;
-                    currentCredit = 0;
+                    viewingStart = true;
+                    screenChange = true;
                 }
             }
         }
+
+        if(viewingStart && !viewingSettings && !viewingCredits && !screenChange) {
+
+            if(QuickGame_Button_Pressed(PSP_CTRL_UP)) {
+                QuickGame_Audio_Play(ping, 0);
+                selectedStartOption--;
+            }
+
+            if(QuickGame_Button_Pressed(PSP_CTRL_DOWN)) {
+                QuickGame_Audio_Play(pong, 0);
+                selectedStartOption++;
+            }
+
+            if(selectedStartOption > 3) {
+                selectedStartOption = 1;
+            }
+
+            if(selectedStartOption < 1) {
+                selectedStartOption = 3;
+            }
+
+            update_selected_start_option();
+
+            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedStartOption == 1) {
+                loadedNotStarted = false;
+                viewingStart = false;
+                screenChange = true;
+            }
+
+            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedStartOption == 2) {
+                viewingSettings = true;
+                viewingStart = false;
+                screenChange = true;
+            }
+
+            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedStartOption == 3) {
+                viewingCredits = true;
+                viewingStart = false;
+                screenChange = true;
+                currentCredit = 0;
+            }
+        }
+        screenChange = false;
     } else {
         if(!mostlyDead && !runComplete && !gameComplete && !paused) {
-            animate_ball(dt);
-            animation_update();
 
             if(QuickGame_Button_Pressed(PSP_CTRL_START)) {
                 paused = true;
             }
 
             if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)){
-                started = true;
-                scroll_bg = true;
-                ball_vel = 100.0f;
-                randomize_level_variables();
+                if(!started || allowGlitch) {
+                    started = true;
+                    scroll_bg = true;
+                    ball_vel = 100.0f;
+                    randomize_level_variables();
+                    ball0_x = 260;
+                    ball0_y = 187;
+                    ball1_x = 280;
+                    ball1_y = 187;
+                    ball2_x = 300;
+                    ball2_y = 187;
+                }
             }
 
             if(started) {
@@ -437,11 +593,19 @@ void draw() {
     QuickGame_Sprite_Draw(animBall[curr_ball_anim]);
 
     if(loadedNotStarted) {
-        if(viewingCredits) {
-            QuickGame_Sprite_Draw(credits[currentCredit]); 
+        if(viewingSettings) {
+            QuickGame_Sprite_Draw(settingsScreen);
+            QuickGame_Sprite_Draw(animBall0[curr_ball_anim]);
+            QuickGame_Sprite_Draw(animBall1[curr_ball_anim]);
+            QuickGame_Sprite_Draw(animBall2[curr_ball_anim]);
         } else {
-            QuickGame_Sprite_Draw(startScreen);    
+            if(viewingCredits) {
+                QuickGame_Sprite_Draw(credits[currentCredit]);
+            } else {
+                QuickGame_Sprite_Draw(startScreen);    
+            }
         }
+        
     } else {
 
         if(!started && !mostlyDead && !runComplete) {
@@ -450,7 +614,7 @@ void draw() {
             }
 
             if(remainingAttempts > 1) {
-                QuickGame_Sprite_Draw(animBall1[curr_ball_anim]);
+                QuickGame_Sprite_Draw(animBall1[curr_ball_anim]);;
             }
 
             if(remainingAttempts > 0) {
@@ -458,6 +622,8 @@ void draw() {
             }
 
             QuickGame_Sprite_Draw(attempts);
+            QuickGame_Sprite_Draw(mission[currentMission-1]);
+            QuickGame_Sprite_Draw(run[currentRun-1]);
         }
 
         if(mostlyDead) {
@@ -529,6 +695,9 @@ void load_sprites() {
     QGTexInfo startTex = { .filename = "./assets/sprites/start.png", .flip = true, .vram = 0 };
     startScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, startTex);
 
+    QGTexInfo settingsTex = { .filename = "./assets/sprites/options.png", .flip = true, .vram = 0 };
+    settingsScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, settingsTex);
+
     for(int i = 0; i < 5; i++){
         char filename[256];
         sprintf(filename, "./assets/sprites/credits/%d.png", i);
@@ -561,7 +730,7 @@ void load_sprites() {
         animBall1[i] = QuickGame_Sprite_Create_Contained(280, 187, 14, 14, ballTex);
     }
 
-        for(int i = 0; i < 7; i++){
+    for(int i = 0; i < 7; i++){
         char filename[256];
         sprintf(filename, "./assets/sprites/ball/%d.png", i);
 
@@ -575,6 +744,22 @@ void load_sprites() {
 
         QGTexInfo sc = { .filename = filename, .flip = true, .vram = 0 };
         score[i] = QuickGame_Sprite_Create_Contained(240, 136, 32, 64, sc);
+    }
+
+    for(int i = 0; i < 3; i++){
+        char filename[256];
+        sprintf(filename, "./assets/sprites/mission/%d.png", i);
+
+        QGTexInfo missionTex = { .filename = filename, .flip = true, .vram = 0 };
+        mission[i] = QuickGame_Sprite_Create_Contained(240, 170, 174, 21, missionTex);
+    }
+
+    for(int i = 0; i < 5; i++){
+        char filename[256];
+        sprintf(filename, "./assets/sprites/run/%d.png", i);
+
+        QGTexInfo runTex = { .filename = filename, .flip = true, .vram = 0 };
+        run[i] = QuickGame_Sprite_Create_Contained(240, 150, 174, 21, runTex);
     }
 }
 
