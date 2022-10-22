@@ -19,7 +19,6 @@ TODOS
 16. Re-implement char overflowable_ball_vel
 17. Clean up
 17a. Align variable, asset and sprite naming
-18. Add level count text
 19. Figure out paddle top 10.0f requirement
 */ 
 
@@ -500,23 +499,41 @@ void update(double dt) {
                 }
                 
 
-                if(QuickGame_Button_Held(PSP_CTRL_LTRIGGER)){
+                if(!faceControls) {
+                    if(QuickGame_Button_Held(PSP_CTRL_LTRIGGER)){
+                        if(QuickGame_Button_Held(PSP_CTRL_UP) && (pinkPaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
+                            pinkPaddle_y += vel_paddle;
+                        }
+                        if(QuickGame_Button_Held(PSP_CTRL_DOWN) && (pinkPaddle_y > paddle_height - (paddle_height/2.0f))){
+                            pinkPaddle_y -= vel_paddle;
+                        }
+                    }
+
+                    if(QuickGame_Button_Held(PSP_CTRL_RTRIGGER)){
+                        if(QuickGame_Button_Held(PSP_CTRL_UP) && (bluePaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
+                            bluePaddle_y += vel_paddle;
+                        }
+                        if(QuickGame_Button_Held(PSP_CTRL_DOWN) && (bluePaddle_y > paddle_height - (paddle_height/2.0f))){
+                            bluePaddle_y -= vel_paddle;
+                        }
+                    }
+                } else {
                     if(QuickGame_Button_Held(PSP_CTRL_UP) && (pinkPaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
                         pinkPaddle_y += vel_paddle;
                     }
                     if(QuickGame_Button_Held(PSP_CTRL_DOWN) && (pinkPaddle_y > paddle_height - (paddle_height/2.0f))){
                         pinkPaddle_y -= vel_paddle;
                     }
-                }
+                
 
-                if(QuickGame_Button_Held(PSP_CTRL_RTRIGGER)){
-                    if(QuickGame_Button_Held(PSP_CTRL_UP) && (bluePaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
+                    if(QuickGame_Button_Held(PSP_CTRL_TRIANGLE) && (bluePaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
                         bluePaddle_y += vel_paddle;
                     }
-                    if(QuickGame_Button_Held(PSP_CTRL_DOWN) && (bluePaddle_y > paddle_height - (paddle_height/2.0f))){
+                    if(QuickGame_Button_Held(PSP_CTRL_CROSS) && (bluePaddle_y > paddle_height - (paddle_height/2.0f))){
                         bluePaddle_y -= vel_paddle;
                     }
                 }
+
 
                 if(collision_delay >= 0) {
                     collision_delay--;
