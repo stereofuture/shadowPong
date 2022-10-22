@@ -11,7 +11,6 @@
 TODOS
 4. Animate paddles
 8a. Implement difficulty (speed modifier, length modifier, frequency of objects)
-8b. Implement control changes
 9. Add story messages
 11. Add other obstacles (blocks, flips)
 15. Add scroll speed
