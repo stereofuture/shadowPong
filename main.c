@@ -9,8 +9,8 @@
 
 /*
 TODOS
+1. Add actual game complete
 4. Animate paddles
-8a. Difficulty - Speed modifier
 8c. Difficulty - Obstacle frequency
 9. Add story messages
 11. Add other obstacles (blocks, flips)
@@ -191,7 +191,6 @@ void move_to_next_level() {
     vel_mod = 1.0f;
     endNode_y = 400.0f;
     endNode_x = 160;
-    currentRun++;
     remainingAttempts = 3;
     // First run - ~3s, Second run - ~ 7s?
     run_length = 5.0f + (difficultyLevel * currentRun * 1.0f);
