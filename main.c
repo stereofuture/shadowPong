@@ -10,9 +10,11 @@
 /*
 TODOS
 4. Animate paddles
-8a. Implement difficulty (speed modifier, length modifier, frequency of objects)
+8a. Difficulty - Speed modifier
+8c. Difficulty - Obstacle frequency
 9. Add story messages
 11. Add other obstacles (blocks, flips)
+12. Add powerups (speed boost, paddle embiggener)
 15. Add scroll speed
 15a. Synch music with scroll speed
 16. Re-implement char overflowable_ball_vel
@@ -188,7 +190,7 @@ void move_to_next_level() {
     endNode_x = 160;
     currentRun++;
     remainingAttempts = 3;
-    run_length = 5.0f + (currentRun * 1.0f);
+    run_length = 5.0f + (difficultyLevel * currentRun * 1.0f);
 }
 
 void checkDeath() {
@@ -564,6 +566,7 @@ void update(double dt) {
                 if(ball_x < 0 || ball_x > screen_width) {
                     QuickGame_Audio_Play(fail, 0);
                     checkDeath();
+                    // ballRight=!ballRight;
                 }
             }
             
