@@ -77,6 +77,8 @@ float vel_paddle = 5.0f;
 float left_paddle_lane_x = 10.0f;
 float right_paddle_lane_x = 473.0f;
 float ball_height = 7.0f;
+// ~35s for max starting at 100.0f and +0.1f
+//  ~11s for max starting at 100.0f and +0.3f
 float vel_max = 300.0f;
 int collision_delay = 0;
 int currentCredit = 0;
@@ -154,6 +156,7 @@ void reset_game() {
     ball_vel = 0.0f;
     vel_mod = 1.0f;
     endNode_y = 400.0f;
+    // First run on any difficulty is always the same length
     run_length = 5.0f;
     scroll_bg = false;
     selectedStartOption = 1;
@@ -190,7 +193,9 @@ void move_to_next_level() {
     endNode_x = 160;
     currentRun++;
     remainingAttempts = 3;
+    // First run - ~3s, Second run - ~ 7s?
     run_length = 5.0f + (difficultyLevel * currentRun * 1.0f);
+    vel_max = 300.0f + ((difficultyLevel - 1) * 25.0f);
 }
 
 void checkDeath() {
@@ -282,7 +287,7 @@ void update_ball(double dt) {
     }
 
     if(ball_vel < vel_max) {
-        ball_vel += 0.1f;
+        ball_vel += (difficultyLevel * 0.1f);
     }
 }
 
