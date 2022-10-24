@@ -10,6 +10,7 @@
 /*
 TODOS
 1. Add actual game complete
+1a. Add ending scroll
 4. Animate paddles
 8c. Difficulty - Obstacle frequency
 9. Add story messages
