@@ -7,7 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(solopong main.c)
 add_subdirectory(./QuickGame/ QuickGame)
 
-target_link_libraries(solopong PUBLIC QuickGame)
+# TODO: Drop debug before 1.0
+target_link_libraries(solopong PUBLIC QuickGame pspdebug)
 target_include_directories(solopong PUBLIC QuickGame/include)
 
 if (PLATFORM_PSP)
