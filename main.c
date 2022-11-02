@@ -763,14 +763,6 @@ void load_sprites() {
         animBall2[i] = QuickGame_Sprite_Create_Contained(300, 187, 14, 14, ballTex);
     }
 
-    for(int i = 0; i < 10; i++){
-        char filename[256];
-        sprintf(filename, "./assets/sprites/count/%d.png", i);
-
-        QGTexInfo sc = { .filename = filename, .flip = true, .vram = 0 };
-        score[i] = QuickGame_Sprite_Create_Contained(240, 136, 32, 64, sc);
-    }
-
     for(int i = 0; i < 3; i++){
         char filename[256];
         sprintf(filename, "./assets/sprites/mission/%d.png", i);
