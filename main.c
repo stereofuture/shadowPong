@@ -9,8 +9,8 @@
 
 /*
 TODOS
-1. Add actual game complete
-1a. Add ending scroll
+1. Add ending scroll
+5. Add high score mode
 6. Improve sprite detail
 6a. Add depth to BG scroll
 6b. Animate end node
@@ -18,17 +18,24 @@ TODOS
 6c1. Add splash for ball collision
 6c2. Add up/down animation
 7. Add alternate physics (simple V complex)
-8c. Difficulty - Obstacle frequency
 9. Add story messages
 11. Add other obstacles (blocks, flips)
 12. Add powerups (speed boost, paddle embiggener)
-15. Add scroll speed
-15a. Synch music with scroll speed
+16. Change ball launch button to be compatible with glitch (CROSS currently moves and glitches)
 17. Clean up
 17a. Align variable, asset and sprite naming
 17c. Split into separate files
-19. Figure out paddle top 10.0f requirement
+20. Add ability to back out of current run
 */ 
+
+/*
+POST TODOS
+8c. Difficulty - Obstacle frequency
+15. Add scroll speed
+15a. Synch music with scroll speed
+19. Figure out paddle top 10.0f requirement
+21. Add Settings option to pause state
+*/
 
 /*
 WONTDOS
@@ -37,7 +44,7 @@ WONTDOS
 
 QGSprite_t bg, attempts, pinkPaddle, bluePaddle, ball, endNode, endBall;
 QGSprite_t startScreen, settingsScreen
-, packetlost, gameover, runCompleteScreen, gameCompleteScreen;
+, packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen;
 QGSprite_t credits[5];
 QGSprite_t score[10];
 QGSprite_t animBall[7];
@@ -60,7 +67,7 @@ typedef enum {
     VIEWING_SETTINGS,
     VIEWING_START,
     RUN_COMPLETE,
-    JOB_COMPLETE,
+    MISSION_COMPLETE,
     GAME_COMPLETE,
     MOSTLY_DEAD,
     ALL_DEAD,
@@ -163,6 +170,14 @@ void draw_remaining_attempts() {
     QuickGame_Sprite_Draw(attempts);
 }
 
+void draw_ending_scroll() {
+    glTexOffset(0.0f, timer.total * 0.1f);
+    bg->transform.position.y = 128;
+    QuickGame_Sprite_Draw(gameCompleteScrollScreen);
+
+    glTexOffset(0.0f, 0.0f);
+}
+
 void randomize_level_variables() {
     int start_seed = rand() % 4;
 
@@ -253,10 +268,10 @@ void checkVictory() {
     if(currentRun > 5) {
         currentMission++;
         currentRun = 1;
-        current_state = GAME_COMPLETE;
+        current_state = MISSION_COMPLETE;
     }
     if(currentMission > 2) {
-        //TODO: Add actual game complete;
+        current_state = GAME_COMPLETE;
     }
 }
 
@@ -439,6 +454,9 @@ void update(double dt) {
                 ball2_x = 376;
             }
 
+            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedSettingsOption == 4) {
+                // TODO: Implement physics option
+            }
 
             if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
                 current_state = VIEWING_START;
@@ -515,7 +533,6 @@ void update(double dt) {
                 if(QuickGame_Button_Held(PSP_CTRL_DOWN) && (pinkPaddle_y > paddle_height - (paddle_height/2.0f))){
                     pinkPaddle_y -= vel_paddle;
                 }
-            
 
                 if(QuickGame_Button_Held(PSP_CTRL_TRIANGLE) && (bluePaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
                     bluePaddle_y += vel_paddle;
@@ -524,7 +541,6 @@ void update(double dt) {
                     bluePaddle_y -= vel_paddle;
                 }
             }
-
 
             if(collision_delay >= 0) {
                 collision_delay--;
@@ -540,7 +556,6 @@ void update(double dt) {
                     ballRight = !ballRight;
                     collision_delay = 5;
                 }
-
             }
 
             if(QuickGame_Timer_Elapsed(&timer) >= run_length){
@@ -565,6 +580,7 @@ void update(double dt) {
         }
         break;
     case RUN_COMPLETE:
+    case MISSION_COMPLETE:
         if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) 
             move_to_next_level();
         break;
@@ -621,8 +637,12 @@ void draw() {
         case RUN_COMPLETE:
             QuickGame_Sprite_Draw(runCompleteScreen);
             break;
+        case MISSION_COMPLETE:
+            QuickGame_Sprite_Draw(missionCompleteScreen);
+            break;
         case GAME_COMPLETE:
             QuickGame_Sprite_Draw(gameCompleteScreen);
+            // TODO: Add epilogue scroll
             break;
     }
 
@@ -663,8 +683,14 @@ void load_sprites() {
     QGTexInfo runCompleteTex = { .filename = "./assets/sprites/runComplete.png", .flip = true, .vram = 0 };
     runCompleteScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, runCompleteTex);
 
+    QGTexInfo missionCompleteTex = { .filename = "./assets/sprites/missionComplete.png", .flip = true, .vram = 0 };
+    missionCompleteScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, missionCompleteTex);
+
     QGTexInfo gameCompleteTex = { .filename = "./assets/sprites/gameComplete.png", .flip = true, .vram = 0 };
     gameCompleteScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, gameCompleteTex);
+
+    QGTexInfo gameCompleteScrollTex = { .filename = "./assets/sprites/gameCompleteScroll.png", .flip = true, .vram = 0 };
+    gameCompleteScrollScreen = QuickGame_Sprite_Create_Contained(240, 136, 586, 558 , gameCompleteScrollTex);
 
     QGTexInfo startTex = { .filename = "./assets/sprites/start.png", .flip = true, .vram = 0 };
     startScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, startTex);
@@ -718,7 +744,8 @@ void load_audio() {
     levelMusic2 = QuickGame_Audio_Load( "./assets/audio/music/tgfcoder-FrozenJam-SeamlessLoop.wav" , true, false);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+    pspDebugScreenInit();
     if(QuickGame_Init() < 0)
         return 1;
 
