@@ -619,6 +619,8 @@ void draw() {
     QuickGame_Graphics_Start_Frame();
     QuickGame_Graphics_Clear();
     
+    draw_bg_scroll();
+
     switch(current_state) {
         case VIEWING_SETTINGS :
             QuickGame_Sprite_Draw(settingsScreen);
@@ -654,9 +656,8 @@ void draw() {
         case GAME_COMPLETE:
             QuickGame_Sprite_Draw(gameCompleteScreen);
             break;
-
     }
-    draw_bg_scroll();
+
     QuickGame_Sprite_Draw(pinkPaddle);
     QuickGame_Sprite_Draw(bluePaddle);
     QuickGame_Sprite_Draw(animBall[curr_ball_anim]);
