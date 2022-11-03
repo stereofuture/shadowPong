@@ -10,7 +10,6 @@
 /*
 TODOS
 1. Add ending scroll
-4. Animate paddles
 5. Add high score mode
 6. Improve sprite detail
 6a. Add depth to BG scroll
@@ -19,20 +18,24 @@ TODOS
 6c1. Add splash for ball collision
 6c2. Add up/down animation
 7. Add alternate physics (simple V complex)
-8c. Difficulty - Obstacle frequency
 9. Add story messages
 11. Add other obstacles (blocks, flips)
 12. Add powerups (speed boost, paddle embiggener)
-15. Add scroll speed
-15a. Synch music with scroll speed
 16. Change ball launch button to be compatible with glitch (CROSS currently moves and glitches)
 17. Clean up
 17a. Align variable, asset and sprite naming
 17c. Split into separate files
-19. Figure out paddle top 10.0f requirement
 20. Add ability to back out of current run
-21. Add Settings option to pause state
 */ 
+
+/*
+POST TODOS
+8c. Difficulty - Obstacle frequency
+15. Add scroll speed
+15a. Synch music with scroll speed
+19. Figure out paddle top 10.0f requirement
+21. Add Settings option to pause state
+*/
 
 /*
 WONTDOS
