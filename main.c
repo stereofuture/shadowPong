@@ -2,6 +2,7 @@
 #include <gu2gl.h>
 #include <pspctrl.h>
 #include <time.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <pspkernel.h>
@@ -19,17 +20,20 @@ TODOS
 6c2. Add up/down animation
 7. Add alternate physics (simple V complex)
 9. Add story messages
-11. Add other obstacles (blocks, flips)
+11. Ensure obstacles aren't too close end node
 12. Add powerups (speed boost, paddle embiggener)
 16. Change ball launch button to be compatible with glitch (CROSS currently moves and glitches)
 17. Clean up
 17a. Align variable, asset and sprite naming
+17b. Optimize redundant code (checking flip every update)
 17c. Split into separate files
 20. Add ability to back out of current run
+21. Enhance collision to take into account top and bottom
 */ 
 
 /*
 POST TODOS
+4. Add checks to move obstalce to ensure they don't overlap node and eachother
 8c. Difficulty - Obstacle frequency
 15. Add scroll speed
 15a. Synch music with scroll speed
@@ -42,7 +46,7 @@ WONTDOS
 16. Re-implement char overflowable_ball_vel
 */
 
-QGSprite_t bg, attempts, pinkPaddle, bluePaddle, ball, endNode, endBall;
+QGSprite_t bg, attempts, pinkPaddle, bluePaddle, ball, endNode, endBall, wall, flipPad;
 QGSprite_t startScreen, settingsScreen
 , packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen;
 QGSprite_t credits[5];
@@ -80,6 +84,8 @@ float ball0_y, ball0_x;
 float ball1_y, ball1_x;
 float ball2_y, ball2_x;
 float pinkPaddle_y, bluePaddle_y;
+float wall_x, wall_y;
+float flipPad_x, flipPad_y;
 float endNode_y, endNode_x;
 float ball_vel;
 float vel_mod;
@@ -90,6 +96,8 @@ bool ballUp;
 bool ballRight;
 bool scroll_bg;
 float run_length;
+float flipPad_timer;
+float wall_timer;
 int currentRun;
 int currentMission;
 int remainingAttempts;
@@ -178,6 +186,13 @@ void draw_ending_scroll() {
     glTexOffset(0.0f, 0.0f);
 }
 
+void randomize_obstacles() {
+    wall_timer = fmod(rand(), run_length);
+    wall_x = 120 + rand() % 240;
+    flipPad_timer = fmod(rand(), run_length);
+    flipPad_x = 180 + rand() % 120;
+}
+
 void randomize_level_variables() {
     int start_seed = rand() % 4;
 
@@ -211,12 +226,15 @@ void reset_game() {
     ball_x = 240.0f;
     pinkPaddle_y = 136.0f;
     bluePaddle_y = 136.0f;
+    wall_y = 300.0f;
+    flipPad_y = 300.0f;
     glitched = false;
     ball_vel = 0.0f;
     vel_mod = 1.0f;
     endNode_y = 400.0f;
     // First run on any difficulty is always the same length
     run_length = 5.0f;
+
     scroll_bg = false;
     currentCredit = 0;
     current_state = LOADED_NOT_STARTED;
@@ -246,8 +264,9 @@ void move_to_next_level() {
     glitched = false;
     ball_vel = 0.0f;
     vel_mod = 1.0f;
+    wall_y = 320.0f;
+    flipPad_y = 320.0f;
     endNode_y = 400.0f;
-    endNode_x = 160;
     remainingAttempts = 3;
     // First run - ~3s, Second run - ~ 7s?
     run_length = 5.0f + (difficultyLevel * currentRun * 1.0f);
@@ -270,7 +289,7 @@ void checkVictory() {
         currentRun = 1;
         current_state = MISSION_COMPLETE;
     }
-    if(currentMission > 2) {
+    if(currentMission > 3) {
         current_state = GAME_COMPLETE;
     }
 }
@@ -281,6 +300,14 @@ void animate_endNode() {
     } else {
         scroll_bg = false;
     }
+}
+
+void animate_wall() {
+    wall_y -= 0.2f;
+}
+
+void animate_flipPad() {
+    flipPad_y -= 0.2f;
 }
 
 void animation_update() {
@@ -299,15 +326,23 @@ void animation_update() {
     pinkPaddle->transform.position.y = pinkPaddle_y;
     bluePaddle->transform.position.y = bluePaddle_y;
 
+    wall->transform.position.y = wall_y;
+    wall->transform.position.x = wall_x;
+    flipPad->transform.position.y = flipPad_y;
+    flipPad->transform.position.x = flipPad_x;
+
     endNode->transform.position.y = endNode_y;
     endNode->transform.position.x = endNode_x;
     endBall->transform.position.y = endNode_y - 3;
     endBall->transform.position.x = endNode_x - 3;
 
-    // if(glitched == true) {
-    //     bluePaddle->transform.position.x = left_paddle_lane_x;
-    //     pinkPaddle->transform.position.x = right_paddle_lane_x;
-    // }
+    if(glitched == true) {
+        bluePaddle->transform.position.x = left_paddle_lane_x;
+        pinkPaddle->transform.position.x = right_paddle_lane_x;
+    } else {
+        bluePaddle->transform.position.x = right_paddle_lane_x;
+        pinkPaddle->transform.position.x = left_paddle_lane_x;
+    }
 }
 
 void animate_runComplete() {
@@ -487,6 +522,7 @@ void update(double dt) {
                 ball2_x = 300;
                 ball2_y = 187;
                 randomize_level_variables();
+                randomize_obstacles();
                 current_state = STARTED;
             }
             break;
@@ -545,21 +581,42 @@ void update(double dt) {
             if(collision_delay >= 0) {
                 collision_delay--;
             } else {
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], bluePaddle)) {
+                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], pinkPaddle)) {
                     QuickGame_Audio_Play(ping, 0);
                     ballRight = !ballRight;
                     collision_delay = 5;
                 }
                 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], pinkPaddle)) {
+                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], wall)) {
                     QuickGame_Audio_Play(pong, 0);
                     ballRight = !ballRight;
                     collision_delay = 5;
                 }
+
+                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], flipPad)) {
+                    QuickGame_Audio_Play(pong, 0);
+                    glitched = !glitched;
+                    collision_delay = 12;
+                }
+
+                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], bluePaddle)) {
+                    QuickGame_Audio_Play(ping, 0);
+                    ballRight = !ballRight;
+                    collision_delay = 5;
+                }
+
             }
 
             if(QuickGame_Timer_Elapsed(&timer) >= run_length){
                 animate_endNode();
+            }
+
+            if(QuickGame_Timer_Elapsed(&timer) >= wall_timer && currentMission > 0){
+                animate_wall();
+            }
+
+            if(QuickGame_Timer_Elapsed(&timer) >= flipPad_timer && currentMission > 0){
+                animate_flipPad();
             }
 
             if(ball_y < ball_height)
@@ -621,6 +678,8 @@ void draw() {
         case STARTED :
             QuickGame_Sprite_Draw(endNode);
             QuickGame_Sprite_Draw(endBall);
+            QuickGame_Sprite_Draw(wall);
+            QuickGame_Sprite_Draw(flipPad);
             break;
         case LOADED_NOT_STARTED :
             draw_remaining_attempts();
@@ -662,6 +721,12 @@ void load_sprites() {
 
     QGTexInfo blue = { .filename = "./assets/sprites/blue.png", .flip = true, .vram = 0 };
     bluePaddle = QuickGame_Sprite_Create_Contained(right_paddle_lane_x, 120, 8, paddle_height, blue);
+
+    QGTexInfo wallTex = { .filename = "./assets/sprites/wall.png", .flip = false, .vram = 0 };
+    wall = QuickGame_Sprite_Create_Contained(wall_x, wall_y, 8, 40, wallTex);
+
+    QGTexInfo flipPadTex = { .filename = "./assets/sprites/flipPad.png", .flip = false, .vram = 0 };
+    flipPad = QuickGame_Sprite_Create_Contained(flipPad_x, flipPad_y, 40, 40, flipPadTex);
 
     QGTexInfo ballTex = { .filename = "./assets/sprites/ball.png", .flip = true, .vram = 0 };
 
