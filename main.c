@@ -22,7 +22,6 @@ TODOS
 17. Clean up
 17a. Align variable, asset and sprite naming
 17c. Split into separate files
-17d. Abstract out options menu controls. Allow arg for how many options in current menu
 19. Figure out paddle top 10.0f requirement
 */ 
 
@@ -80,6 +79,21 @@ int remainingAttempts;
 int selectedStartOption;
 int selectedSettingsOption;
 float ball_vel;
+
+
+int startMenuOptionCoords[3][2] = {
+    {174, 130},
+    {148, 116},
+    {160, 102}
+};
+
+int settingsMenuOptionCoords[5][2] = {
+    {14, 175},
+    {14, 160},
+    {14, 145},
+    {14, 130},
+    {14, 115}
+};
 
 float paddle_height = 50.0f;
 float endNode_width = 22.0f;
@@ -331,42 +345,6 @@ int update_selected_menu_option(int selectedOption, int maxOption) {
         return selectedOption;
 }
 
-void update_selected_start_option() {
-    if (selectedStartOption == 1) {
-        ball_x = 174;
-        ball_y = 130;
-    }
-
-    if (selectedStartOption == 2) {
-        ball_x = 148;
-        ball_y = 116;
-    }
-
-    if (selectedStartOption == 3) {
-        ball_x = 160;
-        ball_y = 102;
-    }
-}
-
-void update_selected_settings_option() {
-    ball_x = 14;
-    if (selectedSettingsOption == 1) {
-        ball_y = 175;
-    }
-    if (selectedSettingsOption == 2) {
-        ball_y = 160;
-    }
-    if (selectedSettingsOption == 3) {
-        ball_y = 145;
-    }
-    if (selectedSettingsOption == 4) {
-        ball_y = 130;
-    }
-    if (selectedSettingsOption == 5) {
-        ball_y = 115;
-    }
-}
-
 void update(double dt) {
     QuickGame_Input_Update();
 
@@ -377,7 +355,8 @@ void update(double dt) {
     switch(current_state) {
         case VIEWING_START :
             selectedStartOption = update_selected_menu_option(selectedStartOption, 3);
-            update_selected_start_option();
+            ball_x = startMenuOptionCoords[selectedStartOption-1][0];
+            ball_y = startMenuOptionCoords[selectedStartOption-1][1];
 
             if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedStartOption == 1) {
                 current_state = LOADED_NOT_STARTED;
@@ -401,7 +380,8 @@ void update(double dt) {
             ball2_y = 145;
 
             selectedSettingsOption = update_selected_menu_option(selectedSettingsOption, 5);
-            update_selected_settings_option();
+            ball_x = settingsMenuOptionCoords[selectedSettingsOption-1][0];
+            ball_y = settingsMenuOptionCoords[selectedSettingsOption-1][1];
 
             if((QuickGame_Button_Pressed(PSP_CTRL_CROSS) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 1) {
                 allowGlitch = !allowGlitch;
