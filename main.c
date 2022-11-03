@@ -11,19 +11,29 @@
 TODOS
 1. Add actual game complete
 1a. Add ending scroll
-4. Animate paddles
+6. Improve sprite detail
+6a. Add depth to BG scroll
+6b. Animate end node
+6c. Animate paddles
+6c1. Add splash for ball collision
+6c2. Add up/down animation
+7. Add alternate physics (simple V complex)
 8c. Difficulty - Obstacle frequency
 9. Add story messages
 11. Add other obstacles (blocks, flips)
 12. Add powerups (speed boost, paddle embiggener)
 15. Add scroll speed
 15a. Synch music with scroll speed
-16. Re-implement char overflowable_ball_vel
 17. Clean up
 17a. Align variable, asset and sprite naming
 17c. Split into separate files
 19. Figure out paddle top 10.0f requirement
 */ 
+
+/*
+WONTDOS
+16. Re-implement char overflowable_ball_vel
+*/
 
 QGSprite_t bg, attempts, pinkPaddle, bluePaddle, ball, endNode, endBall;
 QGSprite_t startScreen, settingsScreen
@@ -78,8 +88,6 @@ int currentMission;
 int remainingAttempts;
 int selectedStartOption;
 int selectedSettingsOption;
-float ball_vel;
-
 
 int startMenuOptionCoords[3][2] = {
     {174, 130},
@@ -678,29 +686,8 @@ void load_sprites() {
 
         QGTexInfo ballTex = { .filename = filename, .flip = true, .vram = 0 };
         animBall[i] = QuickGame_Sprite_Create_Contained(160, 136, 14, 14, ballTex);
-    }
-
-    for(int i = 0; i < 7; i++){
-        char filename[256];
-        sprintf(filename, "./assets/sprites/ball/%d.png", i);
-
-        QGTexInfo ballTex = { .filename = filename, .flip = true, .vram = 0 };
         animBall0[i] = QuickGame_Sprite_Create_Contained(260, 187, 14, 14, ballTex);
-    }
-
-    for(int i = 0; i < 7; i++){
-        char filename[256];
-        sprintf(filename, "./assets/sprites/ball/%d.png", i);
-
-        QGTexInfo ballTex = { .filename = filename, .flip = true, .vram = 0 };
         animBall1[i] = QuickGame_Sprite_Create_Contained(280, 187, 14, 14, ballTex);
-    }
-
-    for(int i = 0; i < 7; i++){
-        char filename[256];
-        sprintf(filename, "./assets/sprites/ball/%d.png", i);
-
-        QGTexInfo ballTex = { .filename = filename, .flip = true, .vram = 0 };
         animBall2[i] = QuickGame_Sprite_Create_Contained(300, 187, 14, 14, ballTex);
     }
 
