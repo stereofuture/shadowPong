@@ -21,7 +21,6 @@ TODOS
 16. Re-implement char overflowable_ball_vel
 17. Clean up
 17a. Align variable, asset and sprite naming
-17b. Change state checks to enum
 17c. Split into separate files
 17d. Abstract out options menu controls. Allow arg for how many options in current menu
 19. Figure out paddle top 10.0f requirement
@@ -59,13 +58,6 @@ typedef enum {
 } GAMESTATES;
 
 GAMESTATES current_state;
-
-// typedef enum {
-//     QG_VERTEX_TYPE_TEXTURED = 0x00,
-//     QG_VERTEX_TYPE_COLORED = 0x01,
-//     QG_VERTEX_TYPE_FULL = 0x02,
-//     QG_VERTEX_TYPE_SIMPLE = 0x03
-// } QGVType;
 
 float ball_y, ball_x;
 float ball0_y, ball0_x;
@@ -189,8 +181,6 @@ void reset_game() {
     // First run on any difficulty is always the same length
     run_length = 5.0f;
     scroll_bg = false;
-    selectedStartOption = 1;
-    selectedSettingsOption = 1;
     currentCredit = 0;
     current_state = LOADED_NOT_STARTED;
 
@@ -203,6 +193,8 @@ void reset_game_completely() {
     currentMission = 1;
     remainingAttempts = 3;
     currentRun = 1;
+    selectedStartOption = 1;
+    selectedSettingsOption = 1;
     current_state = VIEWING_START;
 
     QuickGame_Audio_Play(levelMusic2, 1);
@@ -318,6 +310,27 @@ void update_ball(double dt) {
     }
 }
 
+int update_selected_menu_option(int selectedOption, int maxOption) {
+        if(QuickGame_Button_Pressed(PSP_CTRL_UP)) {
+            QuickGame_Audio_Play(ping, 0);
+            selectedOption--;
+        }
+
+        if(QuickGame_Button_Pressed(PSP_CTRL_DOWN)) {
+            QuickGame_Audio_Play(pong, 0);
+            selectedOption++;
+        }
+
+        if(selectedOption > maxOption) {
+            selectedOption = 1;
+        }
+
+        if(selectedOption < 1) {
+            selectedOption = maxOption;
+        }
+        return selectedOption;
+}
+
 void update_selected_start_option() {
     if (selectedStartOption == 1) {
         ball_x = 174;
@@ -363,24 +376,7 @@ void update(double dt) {
 
     switch(current_state) {
         case VIEWING_START :
-            if(QuickGame_Button_Pressed(PSP_CTRL_UP)) {
-                QuickGame_Audio_Play(ping, 0);
-                selectedStartOption--;
-            }
-
-            if(QuickGame_Button_Pressed(PSP_CTRL_DOWN)) {
-                QuickGame_Audio_Play(pong, 0);
-                selectedStartOption++;
-            }
-
-            if(selectedStartOption > 3) {
-                selectedStartOption = 1;
-            }
-
-            if(selectedStartOption < 1) {
-                selectedStartOption = 3;
-            }
-
+            selectedStartOption = update_selected_menu_option(selectedStartOption, 3);
             update_selected_start_option();
 
             if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedStartOption == 1) {
@@ -403,24 +399,8 @@ void update(double dt) {
             ball0_y = 175;
             ball1_y = 160;
             ball2_y = 145;
-            if(QuickGame_Button_Pressed(PSP_CTRL_UP)) {
-                QuickGame_Audio_Play(ping, 0);
-                selectedSettingsOption--;
-            }
 
-            if(QuickGame_Button_Pressed(PSP_CTRL_DOWN)) {
-                QuickGame_Audio_Play(pong, 0);
-                selectedSettingsOption++;
-            }
-
-            if(selectedSettingsOption > 5) {
-                selectedSettingsOption = 1;
-            }
-
-            if(selectedSettingsOption < 1) {
-                selectedSettingsOption = 5;
-            }
-
+            selectedSettingsOption = update_selected_menu_option(selectedSettingsOption, 5);
             update_selected_settings_option();
 
             if((QuickGame_Button_Pressed(PSP_CTRL_CROSS) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 1) {
