@@ -22,7 +22,6 @@ TODOS
 9. Add story messages
 11. Ensure obstacles aren't too close end node
 12. Add powerups (speed boost, paddle embiggener)
-16. Change ball launch button to be compatible with glitch (CROSS currently moves and glitches)
 17. Clean up
 17a. Align variable, asset and sprite naming
 17b. Optimize redundant code (checking flip every update)
@@ -416,17 +415,17 @@ void update(double dt) {
             ball_x = startMenuOptionCoords[selectedStartOption-1][0];
             ball_y = startMenuOptionCoords[selectedStartOption-1][1];
 
-            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedStartOption == 1) {
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) && selectedStartOption == 1) {
                 current_state = LOADED_NOT_STARTED;
                 break;
             }
 
-            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedStartOption == 2) {
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) && selectedStartOption == 2) {
                 current_state = VIEWING_SETTINGS;
                 break;
             }
 
-            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedStartOption == 3) {
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) && selectedStartOption == 3) {
                 current_state = VIEWING_CREDITS;
                 currentCredit = 0;
                 break;
@@ -441,7 +440,7 @@ void update(double dt) {
             ball_x = settingsMenuOptionCoords[selectedSettingsOption-1][0];
             ball_y = settingsMenuOptionCoords[selectedSettingsOption-1][1];
 
-            if((QuickGame_Button_Pressed(PSP_CTRL_CROSS) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 1) {
+            if((QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 1) {
                 allowGlitch = !allowGlitch;
             }
 
@@ -452,7 +451,7 @@ void update(double dt) {
             }
 
             if(selectedSettingsOption == 2) {
-                if((QuickGame_Button_Pressed(PSP_CTRL_CROSS) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT))) {
+                if((QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT))) {
                     difficultyLevel++;
                 }
                 if (QuickGame_Button_Pressed(PSP_CTRL_LEFT)){
@@ -479,7 +478,7 @@ void update(double dt) {
             }
 
         
-            if((QuickGame_Button_Pressed(PSP_CTRL_CROSS) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 3) {
+            if((QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 3) {
                     faceControls = !faceControls;
             }
 
@@ -489,11 +488,11 @@ void update(double dt) {
                 ball2_x = 376;
             }
 
-            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS) && selectedSettingsOption == 4) {
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) && selectedSettingsOption == 4) {
                 // TODO: Implement physics option
             }
 
-            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
+            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) {
                 current_state = VIEWING_START;
                 selectedSettingsOption = 1;
                 ball0_y = -20;
@@ -504,7 +503,7 @@ void update(double dt) {
         case VIEWING_CREDITS :
             ball_x = -20;
             ball_y = -20;
-            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) {
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
                 currentCredit++;
                 if(currentCredit > 4) {
                     current_state = VIEWING_START;
@@ -512,7 +511,7 @@ void update(double dt) {
             }
             break;
         case LOADED_NOT_STARTED :
-            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)){
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)){
                 scroll_bg = true;
                 ball_vel = 100.0f;
                 ball0_x = 260;
@@ -538,7 +537,7 @@ void update(double dt) {
                 update_ball(dt);
             }
             
-            if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)){
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)){
                 if(allowGlitch) {
                     randomize_level_variables();
                 }
@@ -638,19 +637,19 @@ void update(double dt) {
         break;
     case RUN_COMPLETE:
     case MISSION_COMPLETE:
-        if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) 
+        if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
             move_to_next_level();
         break;
     case GAME_COMPLETE:
-        if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) 
+        if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
             reset_game_completely();
         break;
     case MOSTLY_DEAD:
-        if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) 
+        if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
             reset_game();
         break;
     case ALL_DEAD:
-        if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) 
+        if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
             reset_game_completely();
         break;
     }
