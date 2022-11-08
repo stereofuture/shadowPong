@@ -35,7 +35,6 @@ TODOS
 /*
 POST TODOS
 4. Add checks to move obstalce to ensure they don't overlap node and eachother
-8c. Difficulty - Obstacle frequency
 15. Add scroll speed
 15a. Synch music with scroll speed
 19. Figure out paddle top 10.0f requirement
@@ -672,11 +671,11 @@ void update(double dt) {
                 animate_endNode();
             }
 
-            if(QuickGame_Timer_Elapsed(&timer) >= wall_timer && ((currentMission - difficultyLevel) > 0)){
+            if(QuickGame_Timer_Elapsed(&timer) >= wall_timer && (currentMission - difficultyLevel) > 0){
                 animate_wall();
             }
 
-            if(QuickGame_Timer_Elapsed(&timer) >= flipPad_timer && ((currentMission - difficultyLevel) > 1)){
+            if(QuickGame_Timer_Elapsed(&timer) >= flipPad_timer && (currentMission - difficultyLevel) > 1){
                 animate_flipPad();
             }
 
