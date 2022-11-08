@@ -22,19 +22,17 @@ TODOS
 6c1. Add splash for ball collision
 6c2. Add up/down animation
 9. Add story messages
-11. Ensure obstacles aren't too close end node
-12. Add powerups (speed boost, paddle embiggener)
 17. Clean up
 17a. Align variable, asset and sprite naming
 17b. Optimize redundant code (checking flip every update)
 17c. Split into separate files
-20. Add ability to back out of current run
-21. Enhance collision to take into account top and bottom
 */ 
 
 /*
 POST TODOS
 4. Add checks to move obstalce to ensure they don't overlap node and eachother
+12. Add powerups (speed boost, paddle embiggener)
+13. Add pause quit instruction screen
 15. Add scroll speed
 15a. Synch music with scroll speed
 19. Figure out paddle top 10.0f requirement
@@ -698,6 +696,9 @@ void update(double dt) {
     case PAUSED :
         if (QuickGame_Button_Pressed(PSP_CTRL_START)) {
             current_state = STARTED;
+        }
+        if (QuickGame_Button_Pressed(PSP_CTRL_CROSS)) {
+            current_state = VIEWING_START;
         }
         break;
     case RUN_COMPLETE:
