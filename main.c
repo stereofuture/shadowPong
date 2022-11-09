@@ -12,13 +12,15 @@
 TODOS
 1. Add ending scroll
 5. Add high score mode
+5a. Option for endless
+5b. Respawning obstacles
+5c. Display score on run end
 6. Improve sprite detail
 6a. Add depth to BG scroll
 6b. Animate end node
 6c. Animate paddles
 6c1. Add splash for ball collision
 6c2. Add up/down animation
-7. Add alternate physics (simple V complex)
 9. Add story messages
 11. Ensure obstacles aren't too close end node
 12. Add powerups (speed boost, paddle embiggener)
@@ -33,7 +35,6 @@ TODOS
 /*
 POST TODOS
 4. Add checks to move obstalce to ensure they don't overlap node and eachother
-8c. Difficulty - Obstacle frequency
 15. Add scroll speed
 15a. Synch music with scroll speed
 19. Figure out paddle top 10.0f requirement
@@ -54,9 +55,11 @@ QGSprite_t animBall[7];
 QGSprite_t animBall0[7];
 QGSprite_t animBall1[7];
 QGSprite_t animBall2[7];
+QGSprite_t animBall3[7];
 QGSprite_t run[5];
 QGSprite_t mission[3];
 
+enum QGDirection direction;
 
 QGAudioClip_t ping, pong, fail, clear, levelMusic1, levelMusic2;
 
@@ -82,11 +85,13 @@ float ball_y, ball_x;
 float ball0_y, ball0_x;
 float ball1_y, ball1_x;
 float ball2_y, ball2_x;
+float ball3_y, ball3_x;
 float pinkPaddle_y, bluePaddle_y;
 float wall_x, wall_y;
 float flipPad_x, flipPad_y;
 float endNode_y, endNode_x;
 float ball_vel;
+float ball_vel_x, ball_vel_y;
 float vel_mod;
 float bg_scroll_vel;
 int current_score;
@@ -135,6 +140,7 @@ float end_animation_length = 5.0f;
 
 bool faceControls = false;
 bool allowGlitch = false;
+bool complexPhysics = false;
 
 int curr_ball_anim = 0;
 float anim_time = 0.0f;
@@ -199,22 +205,32 @@ void randomize_level_variables() {
         case 0 :
             ballUp = false; 
             ballRight = false;
+            ball_vel_x = ball_vel;
+            ball_vel_y = -ball_vel;
             break;
         case 1 :
             ballUp = true; 
             ballRight = true;
+            ball_vel_x = ball_vel;
+            ball_vel_y = ball_vel;
             break;
         case 2 :
             ballUp = true; 
             ballRight = false;
+            ball_vel_x = -ball_vel;
+            ball_vel_y = ball_vel;
             break;
         case 3 :
             ballUp = false; 
             ballRight = true;
+            ball_vel_x = -ball_vel;
+            ball_vel_y = -ball_vel;
             break;
         default :
             ballUp = false; 
             ballRight = false;
+            ball_vel_x = ball_vel;
+            ball_vel_y = -ball_vel;
     }
 
     endNode_x = 100 + rand() % 280;
@@ -229,10 +245,10 @@ void reset_game() {
     flipPad_y = 300.0f;
     glitched = false;
     ball_vel = 0.0f;
+    ball_vel_x = 0.0f;
+    ball_vel_y = 0.0f;
     vel_mod = 1.0f;
     endNode_y = 400.0f;
-    // First run on any difficulty is always the same length
-    run_length = 5.0f;
 
     scroll_bg = false;
     currentCredit = 0;
@@ -250,6 +266,8 @@ void reset_game_completely() {
     selectedStartOption = 1;
     selectedSettingsOption = 1;
     current_state = VIEWING_START;
+    // First run on any difficulty is always the same length
+    run_length = 5.0f;
 
     QuickGame_Audio_Play(levelMusic2, 1);
 }
@@ -262,6 +280,8 @@ void move_to_next_level() {
     current_state = LOADED_NOT_STARTED;
     glitched = false;
     ball_vel = 0.0f;
+    ball_vel_x = 0.0f;
+    ball_vel_y = 0.0f;
     vel_mod = 1.0f;
     wall_y = 320.0f;
     flipPad_y = 320.0f;
@@ -322,6 +342,9 @@ void animation_update() {
     animBall2[curr_ball_anim]->transform.position.y = ball2_y;
     animBall2[curr_ball_anim]->transform.position.x = ball2_x;
 
+    animBall3[curr_ball_anim]->transform.position.y = ball3_y;
+    animBall3[curr_ball_anim]->transform.position.x = ball3_x;
+
     pinkPaddle->transform.position.y = pinkPaddle_y;
     bluePaddle->transform.position.y = bluePaddle_y;
 
@@ -364,20 +387,31 @@ void animate_runComplete() {
 }
 
 void update_ball(double dt) {
-    if (ballUp == true) {
-        ball_y += ball_vel * dt;
+    if(complexPhysics) {
+        ball_y += ball_vel_y * dt;
+        ball_x += ball_vel_x * dt;
     } else {
-        ball_y -= ball_vel * dt;
-    }
+        if (ballUp == true) {
+            ball_y += ball_vel * dt;
+        } else {
+            ball_y -= ball_vel * dt;
+        }
 
-    if(ballRight == true) {
-        ball_x += ball_vel * dt;
-    } else {
-        ball_x -= ball_vel *dt;
+        if(ballRight == true) {
+            ball_x += ball_vel * dt;
+        } else {
+            ball_x -= ball_vel *dt;
+        }
     }
 
     if(ball_vel < vel_max) {
         ball_vel += (difficultyLevel * 0.1f);
+    }
+    if(ball_vel_y < vel_max) {
+        ball_vel_y += (difficultyLevel * 0.1f);
+    }
+    if(ball_vel_x < vel_max) {
+        ball_vel_x += (difficultyLevel * 0.1f);
     }
 }
 
@@ -435,6 +469,7 @@ void update(double dt) {
             ball0_y = 175;
             ball1_y = 160;
             ball2_y = 145;
+            ball3_y = 130;
 
             selectedSettingsOption = update_selected_menu_option(selectedSettingsOption, 5);
             ball_x = settingsMenuOptionCoords[selectedSettingsOption-1][0];
@@ -479,7 +514,7 @@ void update(double dt) {
 
         
             if((QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 3) {
-                    faceControls = !faceControls;
+                faceControls = !faceControls;
             }
 
             if(!faceControls) {
@@ -489,7 +524,13 @@ void update(double dt) {
             }
 
             if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) && selectedSettingsOption == 4) {
-                // TODO: Implement physics option
+                complexPhysics = !complexPhysics;
+            }
+
+            if(!complexPhysics) {
+                ball3_x = 214;
+            } else {
+                ball3_x = 342;
             }
 
             if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) {
@@ -536,11 +577,8 @@ void update(double dt) {
             } else {
                 update_ball(dt);
             }
-            
-            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)){
-                if(allowGlitch) {
+            if(allowGlitch && QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
                     randomize_level_variables();
-                }
             }
 
             if(!faceControls) {
@@ -582,13 +620,31 @@ void update(double dt) {
             } else {
                 if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], pinkPaddle)) {
                     QuickGame_Audio_Play(ping, 0);
-                    ballRight = !ballRight;
+                    if(complexPhysics) {
+                        ball_vel_x = -ball_vel_x;
+                        ball_vel_y = ball_vel_y - (pinkPaddle_y - ball_y) * 5;
+                    } else {
+                        ballRight = !ballRight;
+                    }
                     collision_delay = 5;
                 }
                 
                 if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], wall)) {
                     QuickGame_Audio_Play(pong, 0);
-                    ballRight = !ballRight;
+                    direction = QuickGame_Sprite_Intersect_Direction(animBall[curr_ball_anim], wall);
+                    if(complexPhysics) {
+                        if(direction == QG_DIR_LEFT || direction == QG_DIR_RIGHT) {
+                            ball_vel_x = -ball_vel_x;
+                        } 
+                        ball_vel_y = ball_vel_y - (wall_y - ball_y) * 5;
+                    } else {
+                        if(direction == QG_DIR_LEFT || direction == QG_DIR_RIGHT) {
+                            ballRight = !ballRight;
+                        } else {
+                            ballUp = !ballUp;
+                        }
+
+                    }
                     collision_delay = 5;
                 }
 
@@ -600,7 +656,12 @@ void update(double dt) {
 
                 if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], bluePaddle)) {
                     QuickGame_Audio_Play(ping, 0);
-                    ballRight = !ballRight;
+                    if(complexPhysics) {
+                        ball_vel_x = -ball_vel_x;
+                        ball_vel_y = ball_vel_y - (bluePaddle_y - ball_y) * 5;
+                    } else {
+                        ballRight = !ballRight;
+                    }
                     collision_delay = 5;
                 }
 
@@ -610,19 +671,23 @@ void update(double dt) {
                 animate_endNode();
             }
 
-            if(QuickGame_Timer_Elapsed(&timer) >= wall_timer && currentMission > 0){
+            if(QuickGame_Timer_Elapsed(&timer) >= wall_timer && (currentMission - difficultyLevel) > 0){
                 animate_wall();
             }
 
-            if(QuickGame_Timer_Elapsed(&timer) >= flipPad_timer && currentMission > 0){
+            if(QuickGame_Timer_Elapsed(&timer) >= flipPad_timer && (currentMission - difficultyLevel) > 1){
                 animate_flipPad();
             }
 
-            if(ball_y < ball_height)
+            if(ball_y < ball_height) {
                 ballUp=true;
+                ball_vel_y = -ball_vel_y;
+            }
 
-            if(ball_y > screen_height)
+            if(ball_y > screen_height) {
                 ballUp=false;
+                ball_vel_y = -ball_vel_y;
+            }
 
             if(ball_x < 0 || ball_x > screen_width) {
                 QuickGame_Audio_Play(fail, 0);
@@ -667,6 +732,7 @@ void draw() {
             QuickGame_Sprite_Draw(animBall0[curr_ball_anim]);
             QuickGame_Sprite_Draw(animBall1[curr_ball_anim]);
             QuickGame_Sprite_Draw(animBall2[curr_ball_anim]);
+            QuickGame_Sprite_Draw(animBall3[curr_ball_anim]);
             break;
         case VIEWING_CREDITS :
             QuickGame_Sprite_Draw(credits[currentCredit]);
@@ -779,6 +845,7 @@ void load_sprites() {
         animBall0[i] = QuickGame_Sprite_Create_Contained(260, 187, 14, 14, ballTex);
         animBall1[i] = QuickGame_Sprite_Create_Contained(280, 187, 14, 14, ballTex);
         animBall2[i] = QuickGame_Sprite_Create_Contained(300, 187, 14, 14, ballTex);
+        animBall3[i] = QuickGame_Sprite_Create_Contained(320, 187, 14, 14, ballTex);
     }
 
     for(int i = 0; i < 3; i++){
