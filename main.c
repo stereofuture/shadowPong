@@ -10,13 +10,11 @@
 
 /*
 TODOS
-1. Add ending scroll
 5. Add high score mode
 5a. Option for endless
 5b. Respawning obstacles
 5c. Display score on run end
 6. Improve sprite detail
-6a. Add depth to BG scroll
 6b. Animate end node
 6c. Animate paddles
 6c1. Add splash for ball collision
@@ -46,7 +44,7 @@ WONTDOS
 
 QGSprite_t bg, bgFore, attempts, pinkPaddle, bluePaddle, ball, endNode, endBall, wall, flipPad;
 QGSprite_t startScreen, settingsScreen
-, packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen;
+, packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen, finalScreen;
 QGSprite_t credits[5];
 QGSprite_t score[10];
 QGSprite_t animBall[7];
@@ -73,6 +71,7 @@ typedef enum {
     RUN_COMPLETE,
     MISSION_COMPLETE,
     GAME_COMPLETE,
+    VIEWING_ENDING,
     MOSTLY_DEAD,
     ALL_DEAD,
 } GAMESTATES;
@@ -90,6 +89,7 @@ float flipPad_x, flipPad_y;
 float endNode_y, endNode_x;
 float ball_vel;
 float ball_vel_x, ball_vel_y;
+float ending_scroll_y;
 float vel_mod;
 float bg_scroll_vel;
 float bg_scroll_offset;
@@ -99,6 +99,7 @@ bool glitched;
 bool ballUp;
 bool ballRight;
 bool scroll_bg;
+bool show_final_screen;
 float run_length;
 float flipPad_timer;
 float wall_timer;
@@ -144,6 +145,7 @@ bool complexPhysics = false;
 
 int curr_ball_anim = 0;
 float anim_time = 0.0f;
+float scroll_time = 0.0f;
 
 void animate_ball(double dt) {
     anim_time += dt;
@@ -186,11 +188,21 @@ void draw_remaining_attempts() {
 }
 
 void draw_ending_scroll() {
-    glTexOffset(0.0f, timer.total * 0.1f);
-    bg->transform.position.y = 128;
+    glTexOffset(0.0f, timer.total * -0.025f);
     QuickGame_Sprite_Draw(gameCompleteScrollScreen);
 
     glTexOffset(0.0f, 0.0f);
+}
+
+void update_ending_scroll(double dt) {
+    scroll_time += dt;
+    ending_scroll_y += scroll_time * 0.05f;
+    if(ending_scroll_y > 600.0f) {
+        show_final_screen = true;
+        scroll_time = 0.0f;
+    } else {
+        gameCompleteScrollScreen->transform.position.y = ending_scroll_y;   
+    }
 }
 
 void randomize_obstacles() {
@@ -268,6 +280,8 @@ void reset_game_completely() {
     selectedStartOption = 1;
     selectedSettingsOption = 1;
     current_state = VIEWING_START;
+    show_final_screen = false;
+    ending_scroll_y = -254.0f;
     // First run on any difficulty is always the same length
     run_length = 5.0f;
 
@@ -712,7 +726,18 @@ void update(double dt) {
         break;
     case GAME_COMPLETE:
         if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
+            current_state = VIEWING_ENDING;
+        break;
+    case VIEWING_ENDING:
+        ball_x = 500.0f;
+        update_ending_scroll(dt);
+        if(show_final_screen && QuickGame_Button_Pressed(PSP_CTRL_START)) {
             reset_game_completely();
+            break;
+        }
+        if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
+            show_final_screen = true;
+        }
         break;
     case MOSTLY_DEAD:
         if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
@@ -771,8 +796,15 @@ void draw() {
             break;
         case GAME_COMPLETE:
             QuickGame_Sprite_Draw(gameCompleteScreen);
-            // TODO: Add epilogue scroll
             break;
+        case VIEWING_ENDING:
+            if(show_final_screen) {
+                QuickGame_Sprite_Draw(finalScreen);
+            } else {
+                QuickGame_Sprite_Draw(gameCompleteScrollScreen);
+            }
+            break;
+
     }
 
     QuickGame_Sprite_Draw(pinkPaddle);
@@ -828,7 +860,10 @@ void load_sprites() {
     gameCompleteScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, gameCompleteTex);
 
     QGTexInfo gameCompleteScrollTex = { .filename = "./assets/sprites/gameCompleteScroll.png", .flip = true, .vram = 0 };
-    gameCompleteScrollScreen = QuickGame_Sprite_Create_Contained(240, 136, 586, 558 , gameCompleteScrollTex);
+    gameCompleteScrollScreen = QuickGame_Sprite_Create_Contained(240, -512, 512, 512, gameCompleteScrollTex);
+
+    QGTexInfo finalScreenTex = { .filename = "./assets/sprites/gameCompleteFinal.png", .flip = true, .vram = 0 };
+    finalScreen = QuickGame_Sprite_Create_Contained(274, 136, 360, 40, finalScreenTex);
 
     QGTexInfo startTex = { .filename = "./assets/sprites/start.png", .flip = true, .vram = 0 };
     startScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, startTex);
