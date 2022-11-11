@@ -187,7 +187,6 @@ void draw_remaining_attempts() {
 
 void draw_ending_scroll() {
     glTexOffset(0.0f, timer.total * 0.1f);
-    bg->transform.position.y = 128;
     QuickGame_Sprite_Draw(gameCompleteScrollScreen);
 
     glTexOffset(0.0f, 0.0f);
@@ -262,9 +261,9 @@ void reset_game() {
 
 void reset_game_completely() {
     reset_game();
-    currentMission = 1;
+    currentMission = 3;
     remainingAttempts = 3;
-    currentRun = 1;
+    currentRun = 5;
     selectedStartOption = 1;
     selectedSettingsOption = 1;
     current_state = VIEWING_START;
@@ -771,7 +770,7 @@ void draw() {
             break;
         case GAME_COMPLETE:
             QuickGame_Sprite_Draw(gameCompleteScreen);
-            // TODO: Add epilogue scroll
+            draw_ending_scroll();
             break;
     }
 
