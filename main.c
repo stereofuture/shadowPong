@@ -44,7 +44,7 @@ WONTDOS
 16. Re-implement char overflowable_ball_vel
 */
 
-QGSprite_t bg, attempts, pinkPaddle, bluePaddle, ball, endNode, endBall, wall, flipPad;
+QGSprite_t bg, bgFore, attempts, pinkPaddle, bluePaddle, ball, endNode, endBall, wall, flipPad;
 QGSprite_t startScreen, settingsScreen
 , packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen;
 QGSprite_t credits[5];
@@ -92,6 +92,8 @@ float ball_vel;
 float ball_vel_x, ball_vel_y;
 float vel_mod;
 float bg_scroll_vel;
+float bg_scroll_offset;
+float bg_back_scroll_offset;
 int current_score;
 bool glitched;
 bool ballUp;
@@ -157,11 +159,13 @@ void animate_ball(double dt) {
 
 void draw_bg_scroll() {
     if(scroll_bg) {
-        glTexOffset(0.0f, timer.total * 0.2f);
+        bg_back_scroll_offset = timer.total * 0.15f;
+        bg_scroll_offset = timer.total * 0.08f;
     }
-    bg->transform.position.y = 128;
+    glTexOffset(0.0f, bg_back_scroll_offset);
     QuickGame_Sprite_Draw(bg);
-
+    glTexOffset(0.0f, bg_scroll_offset);
+    QuickGame_Sprite_Draw(bgFore);
     glTexOffset(0.0f, 0.0f);
 }
 
@@ -779,7 +783,10 @@ void draw() {
 }
 
 void load_sprites() {
-    QGTexInfo bgTexInfo = {.filename = "./assets/sprites/bg.png", .flip = true, .vram = 0 };
+    QGTexInfo bgForeTexInfo = {.filename = "./assets/sprites/bgFore.png", .flip = true, .vram = 0 };
+    bgFore = QuickGame_Sprite_Create_Contained(240, 192, 512, 512, bgForeTexInfo);
+
+    QGTexInfo bgTexInfo = {.filename = "./assets/sprites/bgBack2X.png", .flip = true, .vram = 0 };
     bg = QuickGame_Sprite_Create_Contained(240, 192, 512, 512, bgTexInfo);
 
     QGTexInfo pink = { .filename = "./assets/sprites/pink.png", .flip = true, .vram = 0 };
