@@ -960,18 +960,22 @@ void draw() {
             break;
         case VIEWING_START :
             QuickGame_Sprite_Draw(startScreen);
-            break;
-        case ENDLESS_STARTED:
-        case STARTED :
-            QuickGame_Sprite_Draw(endNode);
-            QuickGame_Sprite_Draw(endBall);
-            QuickGame_Sprite_Draw(wall);
-            QuickGame_Sprite_Draw(flipPad);
+            QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
             break;
         case LOADED_NOT_STARTED :
             draw_remaining_attempts();
             QuickGame_Sprite_Draw(mission[currentMission-1]);
             QuickGame_Sprite_Draw(run[currentRun-1]);
+        case STARTED :
+            QuickGame_Sprite_Draw(endNode);
+            QuickGame_Sprite_Draw(endBall);
+            QuickGame_Sprite_Draw(wall);
+            QuickGame_Sprite_Draw(flipPad);
+        case ENDLESS_LOADED_NOT_STARTED:
+        case ENDLESS_STARTED:
+            QuickGame_Sprite_Draw(pinkPaddle);
+            QuickGame_Sprite_Draw(bluePaddle);
+            QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
             break;
         case MOSTLY_DEAD:
             draw_remaining_attempts();
@@ -1001,10 +1005,6 @@ void draw() {
             break;
 
     }
-
-    QuickGame_Sprite_Draw(pinkPaddle);
-    QuickGame_Sprite_Draw(bluePaddle);
-    QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
 
     QuickGame_Graphics_End_Frame(true);
 }
