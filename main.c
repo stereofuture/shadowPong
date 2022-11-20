@@ -331,10 +331,16 @@ void move_to_next_level() {
 }
 
 void checkDeath() {
-    current_state = MOSTLY_DEAD;
-    remainingAttempts--;
-    if(remainingAttempts < 0) {
-        current_state = ALL_DEAD;
+    QuickGame_Audio_Play(fail, 0);
+    // ballRight=!ballRight;
+    if(current_state == ENDLESS_STARTED) {
+        current_state = ENDLESS_COMPLETE;
+    } else {
+        current_state = MOSTLY_DEAD;
+        remainingAttempts--;
+        if(remainingAttempts < 0) {
+            current_state = ALL_DEAD;
+        }
     }
 }
 
@@ -736,9 +742,7 @@ void update(double dt) {
             }
 
             if(ball_yx[0][1] < 0 || ball_yx[0][1] > screen_width) {
-                QuickGame_Audio_Play(fail, 0);
                 checkDeath();
-                // ballRight=!ballRight;
             }
         break;
     case PAUSED :
@@ -922,9 +926,7 @@ void update(double dt) {
             }
 
             if(ball_yx[0][1] < 0 || ball_yx[0][1] > screen_width) {
-                // ballRight=!ballRight;
-                QuickGame_Audio_Play(fail, 0);
-                current_state = ENDLESS_COMPLETE;
+                checkDeath();
             }
         break;
     case ENDLESS_PAUSED :
