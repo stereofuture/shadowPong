@@ -10,26 +10,24 @@
 
 /*
 TODOS
-5. Add high score mode
-5a. Option for endless
-5b. Respawning obstacles
-5c. Display score on run end
 6. Improve sprite detail
 6b. Animate end node
 6c. Animate paddles
 6c1. Add splash for ball collision
 6c2. Add up/down animation
+7. Animate title with paddle H
 9. Add story messages
 17. Clean up
 17a. Align variable, asset and sprite naming
 17b. Optimize redundant code (checking flip every update)
 17c. Split into separate files
+17d. Use more loops for sprite creation
 */ 
 
 /*
 POST TODOS
 4. Add checks to move obstalce to ensure they don't overlap node and eachother
-12. Add powerups (speed boost, paddle embiggener)
+12. Add powerups (speed boost, paddle embiggener, multiball)
 13. Add pause quit instruction screen
 15. Add scroll speed
 15a. Synch music with scroll speed
@@ -47,13 +45,10 @@ QGSprite_t startScreen, settingsScreen
 , packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen, finalScreen;
 QGSprite_t credits[5];
 QGSprite_t score[10];
-QGSprite_t animBall[7];
-QGSprite_t animBall0[7];
-QGSprite_t animBall1[7];
-QGSprite_t animBall2[7];
-QGSprite_t animBall3[7];
+QGSprite_t animBall[6][7];
 QGSprite_t run[5];
 QGSprite_t mission[3];
+QGSprite_t nums[10];
 
 enum QGDirection direction;
 
@@ -63,26 +58,26 @@ QGTimer timer;
 
 typedef enum {
     PAUSED,
+    ENDLESS_PAUSED,
     LOADED_NOT_STARTED,
+    ENDLESS_LOADED_NOT_STARTED,
     STARTED,
+    ENDLESS_STARTED,
     VIEWING_CREDITS,
     VIEWING_SETTINGS,
     VIEWING_START,
     RUN_COMPLETE,
     MISSION_COMPLETE,
     GAME_COMPLETE,
+    ENDLESS_COMPLETE,
     VIEWING_ENDING,
     MOSTLY_DEAD,
     ALL_DEAD,
-} GAMESTATES;
+} GAMESTATE;
 
-GAMESTATES current_state;
+GAMESTATE current_state;
 
-float ball_y, ball_x;
-float ball0_y, ball0_x;
-float ball1_y, ball1_x;
-float ball2_y, ball2_x;
-float ball3_y, ball3_x;
+float ball_yx[6][2];
 float pinkPaddle_y, bluePaddle_y;
 float wall_x, wall_y;
 float flipPad_x, flipPad_y;
@@ -137,11 +132,11 @@ float vel_max = 300.0f;
 int collision_delay = 0;
 int currentCredit = 0;
 int difficultyLevel = 1;
-float end_animation_length = 5.0f;
 
 bool faceControls = false;
 bool allowGlitch = false;
 bool complexPhysics = false;
+bool endlessMode = false;
 
 int curr_ball_anim = 0;
 float anim_time = 0.0f;
@@ -172,26 +167,38 @@ void draw_bg_scroll() {
 }
 
 void draw_remaining_attempts() {
-    if(remainingAttempts > 2) {
-        QuickGame_Sprite_Draw(animBall2[curr_ball_anim]);
+    for(int i = 0; i < remainingAttempts; i++){
+        QuickGame_Sprite_Draw(animBall[i+1][curr_ball_anim]);
     }
-
-    if(remainingAttempts > 1) {
-        QuickGame_Sprite_Draw(animBall1[curr_ball_anim]);;
-    }
-
-    if(remainingAttempts > 0) {
-        QuickGame_Sprite_Draw(animBall0[curr_ball_anim]);
-    }
-
     QuickGame_Sprite_Draw(attempts);
 }
 
 void draw_ending_scroll() {
     glTexOffset(0.0f, timer.total * -0.025f);
     QuickGame_Sprite_Draw(gameCompleteScrollScreen);
-
     glTexOffset(0.0f, 0.0f);
+}
+
+void draw_score(){
+    int digits = snprintf( NULL, 0, "%d", current_score);
+
+    float xoff = -((float)digits-1) / 2.0f;
+    xoff *= 32.0f;
+
+    float xn = 0.0f;
+
+    int s = current_score;
+    for(int i = 0; i < digits; i++){
+        int c = s % 10;
+        s /= 10;
+
+        nums[c]->transform.position.x = -xoff + 240 - xn;
+        nums[c]->transform.position.y = 192;
+
+        xn += 32.0f;
+
+        QuickGame_Sprite_Draw(nums[c]);
+    }
 }
 
 void update_ending_scroll(double dt) {
@@ -205,11 +212,21 @@ void update_ending_scroll(double dt) {
     }
 }
 
-void randomize_obstacles() {
-    wall_timer = fmod(rand(), run_length);
-    wall_x = 120 + rand() % 240;
+void randomize_flip() {
     flipPad_timer = fmod(rand(), run_length);
+    flipPad_y = 300.0f + fmod(rand(),100.0f);
     flipPad_x = 180 + rand() % 120;
+}
+
+void randomize_wall() {
+    wall_timer = fmod(rand(), run_length);
+    wall_y = 300.0f + fmod(rand(),100.0f);
+    wall_x = 120 + rand() % 240;
+}
+
+void randomize_obstacles() {
+    randomize_flip();
+    randomize_wall();
 }
 
 void randomize_level_variables() {
@@ -251,8 +268,8 @@ void randomize_level_variables() {
 }
 
 void reset_game() {
-    ball_y = 136.0f;
-    ball_x = 240.0f;
+    ball_yx[0][0] = 136.0f;
+    ball_yx[0][1] = 240.0f;
     pinkPaddle_y = 136.0f;
     bluePaddle_y = 136.0f;
     wall_y = 300.0f;
@@ -266,7 +283,11 @@ void reset_game() {
 
     scroll_bg = false;
     currentCredit = 0;
-    current_state = LOADED_NOT_STARTED;
+    if(endlessMode) {
+        current_state = ENDLESS_LOADED_NOT_STARTED;
+    } else {
+        current_state = LOADED_NOT_STARTED;
+    }
 
     QuickGame_Timer_Reset(&timer);
     QuickGame_Audio_Play(levelMusic1, 1);
@@ -277,6 +298,7 @@ void reset_game_completely() {
     currentMission = 1;
     remainingAttempts = 3;
     currentRun = 1;
+    current_score = 0;
     selectedStartOption = 1;
     selectedSettingsOption = 1;
     current_state = VIEWING_START;
@@ -289,8 +311,8 @@ void reset_game_completely() {
 }
 
 void move_to_next_level() {
-    ball_y = 136.0f;
-    ball_x = 240.0f;
+    ball_yx[0][0] = 136.0f;
+    ball_yx[0][1] = 240.0f;
     pinkPaddle_y = 136.0f;
     bluePaddle_y = 136.0f;
     current_state = LOADED_NOT_STARTED;
@@ -309,10 +331,16 @@ void move_to_next_level() {
 }
 
 void checkDeath() {
-    current_state = MOSTLY_DEAD;
-    remainingAttempts--;
-    if(remainingAttempts < 0) {
-        current_state = ALL_DEAD;
+    QuickGame_Audio_Play(fail, 0);
+    // ballRight=!ballRight;
+    if(current_state == ENDLESS_STARTED) {
+        current_state = ENDLESS_COMPLETE;
+    } else {
+        current_state = MOSTLY_DEAD;
+        remainingAttempts--;
+        if(remainingAttempts < 0) {
+            current_state = ALL_DEAD;
+        }
     }
 }
 
@@ -346,20 +374,11 @@ void animate_flipPad() {
 }
 
 void animation_update() {
-    animBall[curr_ball_anim]->transform.position.y = ball_y;
-    animBall[curr_ball_anim]->transform.position.x = ball_x;
 
-    animBall0[curr_ball_anim]->transform.position.y = ball0_y;
-    animBall0[curr_ball_anim]->transform.position.x = ball0_x;
-
-    animBall1[curr_ball_anim]->transform.position.y = ball1_y;
-    animBall1[curr_ball_anim]->transform.position.x = ball1_x;
-    
-    animBall2[curr_ball_anim]->transform.position.y = ball2_y;
-    animBall2[curr_ball_anim]->transform.position.x = ball2_x;
-
-    animBall3[curr_ball_anim]->transform.position.y = ball3_y;
-    animBall3[curr_ball_anim]->transform.position.x = ball3_x;
+    for(int i = 0; i < 6; i++){
+        animBall[i][curr_ball_anim]->transform.position.y = ball_yx[i][0];
+        animBall[i][curr_ball_anim]->transform.position.x = ball_yx[i][1];
+    }
 
     pinkPaddle->transform.position.y = pinkPaddle_y;
     bluePaddle->transform.position.y = bluePaddle_y;
@@ -388,13 +407,13 @@ void animate_runComplete() {
     float endNode_center_y = endNode_y - 3;
     float endNode_center_x = endNode_x - 3;
 
-    if ((endNode_center_y - 0.2f) > ball_y || (endNode_center_y + 0.2f) < ball_y) {
+    if ((endNode_center_y - 0.2f) > ball_yx[0][0] || (endNode_center_y + 0.2f) < ball_yx[0][0]) {
 
-        if(endNode_center_y != ball_y) {
-            ball_y += (endNode_center_y - ball_y)/20.0f;
+        if(endNode_center_y != ball_yx[0][0]) {
+            ball_yx[0][0] += (endNode_center_y - ball_yx[0][0])/20.0f;
         }
-        if(endNode_center_x != ball_x) {
-            ball_x += (endNode_center_x - ball_x)/20.0f;
+        if(endNode_center_x != ball_yx[0][1]) {
+            ball_yx[0][1] += (endNode_center_x - ball_yx[0][1])/20.0f;
         }
     } else {
         QuickGame_Audio_Play(clear, 0);
@@ -404,19 +423,19 @@ void animate_runComplete() {
 
 void update_ball(double dt) {
     if(complexPhysics) {
-        ball_y += ball_vel_y * dt;
-        ball_x += ball_vel_x * dt;
+        ball_yx[0][0] += ball_vel_y * dt;
+        ball_yx[0][1] += ball_vel_x * dt;
     } else {
         if (ballUp == true) {
-            ball_y += ball_vel * dt;
+            ball_yx[0][0] += ball_vel * dt;
         } else {
-            ball_y -= ball_vel * dt;
+            ball_yx[0][0] -= ball_vel * dt;
         }
 
         if(ballRight == true) {
-            ball_x += ball_vel * dt;
+            ball_yx[0][1] += ball_vel * dt;
         } else {
-            ball_x -= ball_vel *dt;
+            ball_yx[0][1] -= ball_vel *dt;
         }
     }
 
@@ -462,11 +481,15 @@ void update(double dt) {
     switch(current_state) {
         case VIEWING_START :
             selectedStartOption = update_selected_menu_option(selectedStartOption, 3);
-            ball_x = startMenuOptionCoords[selectedStartOption-1][0];
-            ball_y = startMenuOptionCoords[selectedStartOption-1][1];
+            ball_yx[0][1] = startMenuOptionCoords[selectedStartOption-1][0];
+            ball_yx[0][0] = startMenuOptionCoords[selectedStartOption-1][1];
 
             if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) && selectedStartOption == 1) {
-                current_state = LOADED_NOT_STARTED;
+                if(endlessMode) {
+                    current_state = ENDLESS_LOADED_NOT_STARTED;
+                } else {
+                    current_state = LOADED_NOT_STARTED;
+                }
                 break;
             }
 
@@ -482,23 +505,24 @@ void update(double dt) {
             }
             break;
         case VIEWING_SETTINGS :
-            ball0_y = 175;
-            ball1_y = 160;
-            ball2_y = 145;
-            ball3_y = 130;
+            ball_yx[1][0] = 175;
+            ball_yx[2][0] = 160;
+            ball_yx[3][0] = 145;
+            ball_yx[4][0] = 130;
+            ball_yx[5][0] = 115;
 
             selectedSettingsOption = update_selected_menu_option(selectedSettingsOption, 5);
-            ball_x = settingsMenuOptionCoords[selectedSettingsOption-1][0];
-            ball_y = settingsMenuOptionCoords[selectedSettingsOption-1][1];
+            ball_yx[0][1] = settingsMenuOptionCoords[selectedSettingsOption-1][0];
+            ball_yx[0][0] = settingsMenuOptionCoords[selectedSettingsOption-1][1];
 
             if((QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) || QuickGame_Button_Pressed(PSP_CTRL_LEFT) || QuickGame_Button_Pressed(PSP_CTRL_RIGHT)) && selectedSettingsOption == 1) {
                 allowGlitch = !allowGlitch;
             }
 
             if(allowGlitch) {
-                ball0_x = 188;
+                ball_yx[1][1] = 188;
             } else {
-                ball0_x = 296;
+                ball_yx[1][1] = 296;
             }
 
             if(selectedSettingsOption == 2) {
@@ -517,15 +541,15 @@ void update(double dt) {
             }
 
             if (difficultyLevel == 1) {
-                ball1_x = 258;
+                ball_yx[2][1] = 258;
             }
 
             if (difficultyLevel == 2) {
-                ball1_x = 316;
+                ball_yx[2][1] = 316;
             }
 
             if (difficultyLevel == 3) {
-                ball1_x = 386;
+                ball_yx[2][1] = 386;
             }
 
         
@@ -534,9 +558,9 @@ void update(double dt) {
             }
 
             if(!faceControls) {
-                ball2_x = 246;
+                ball_yx[3][1] = 246;
             } else {
-                ball2_x = 376;
+                ball_yx[3][1] = 376;
             }
 
             if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) && selectedSettingsOption == 4) {
@@ -544,22 +568,34 @@ void update(double dt) {
             }
 
             if(!complexPhysics) {
-                ball3_x = 214;
+                ball_yx[4][1] = 214;
             } else {
-                ball3_x = 342;
+                ball_yx[4][1] = 342;
+            }
+
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE) && selectedSettingsOption == 5) {
+                endlessMode = !endlessMode;
+            }
+
+            if(!endlessMode) {
+                ball_yx[5][1] = 148;
+            } else {
+                ball_yx[5][1] = 290;
             }
 
             if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) {
                 current_state = VIEWING_START;
                 selectedSettingsOption = 1;
-                ball0_y = -20;
-                ball1_y = -20;
-                ball2_y = -20;
+                ball_yx[1][0] = -20;
+                ball_yx[2][0] = -20;
+                ball_yx[3][0] = -20;
+                ball_yx[4][0] = -20;
+                ball_yx[5][0] = -20;
             }
             break;
         case VIEWING_CREDITS :
-            ball_x = -20;
-            ball_y = -20;
+            ball_yx[0][1] = -20;
+            ball_yx[0][0] = -20;
             if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
                 currentCredit++;
                 if(currentCredit > 4) {
@@ -571,12 +607,12 @@ void update(double dt) {
             if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)){
                 scroll_bg = true;
                 ball_vel = 100.0f;
-                ball0_x = 260;
-                ball0_y = 187;
-                ball1_x = 280;
-                ball1_y = 187;
-                ball2_x = 300;
-                ball2_y = 187;
+                ball_yx[1][1] = 260;
+                ball_yx[1][0] = 187;
+                ball_yx[2][1] = 280;
+                ball_yx[2][0] = 187;
+                ball_yx[3][1] = 300;
+                ball_yx[3][0] = 187;
                 randomize_level_variables();
                 randomize_obstacles();
                 current_state = STARTED;
@@ -588,7 +624,7 @@ void update(double dt) {
                 break;
             }
 
-            if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], endBall)){
+            if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], endBall)){
                 animate_runComplete();
             } else {
                 update_ball(dt);
@@ -634,25 +670,25 @@ void update(double dt) {
             if(collision_delay >= 0) {
                 collision_delay--;
             } else {
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], pinkPaddle)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], pinkPaddle)) {
                     QuickGame_Audio_Play(ping, 0);
                     if(complexPhysics) {
                         ball_vel_x = -ball_vel_x;
-                        ball_vel_y = ball_vel_y - (pinkPaddle_y - ball_y) * 5;
+                        ball_vel_y = ball_vel_y - (pinkPaddle_y - ball_yx[0][0]) * 5;
                     } else {
                         ballRight = !ballRight;
                     }
                     collision_delay = 5;
                 }
                 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], wall)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], wall)) {
                     QuickGame_Audio_Play(pong, 0);
-                    direction = QuickGame_Sprite_Intersect_Direction(animBall[curr_ball_anim], wall);
+                    direction = QuickGame_Sprite_Intersect_Direction(animBall[0][curr_ball_anim], wall);
                     if(complexPhysics) {
                         if(direction == QG_DIR_LEFT || direction == QG_DIR_RIGHT) {
                             ball_vel_x = -ball_vel_x;
                         } 
-                        ball_vel_y = ball_vel_y - (wall_y - ball_y) * 5;
+                        ball_vel_y = ball_vel_y - (wall_y - ball_yx[0][0]) * 5;
                     } else {
                         if(direction == QG_DIR_LEFT || direction == QG_DIR_RIGHT) {
                             ballRight = !ballRight;
@@ -664,17 +700,17 @@ void update(double dt) {
                     collision_delay = 5;
                 }
 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], flipPad)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], flipPad)) {
                     QuickGame_Audio_Play(pong, 0);
                     glitched = !glitched;
                     collision_delay = 12;
                 }
 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], bluePaddle)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], bluePaddle)) {
                     QuickGame_Audio_Play(ping, 0);
                     if(complexPhysics) {
                         ball_vel_x = -ball_vel_x;
-                        ball_vel_y = ball_vel_y - (bluePaddle_y - ball_y) * 5;
+                        ball_vel_y = ball_vel_y - (bluePaddle_y - ball_yx[0][0]) * 5;
                     } else {
                         ballRight = !ballRight;
                     }
@@ -695,20 +731,18 @@ void update(double dt) {
                 animate_flipPad();
             }
 
-            if(ball_y < ball_height) {
+            if(ball_yx[0][0] < ball_height) {
                 ballUp=true;
                 ball_vel_y = -ball_vel_y;
             }
 
-            if(ball_y > screen_height) {
+            if(ball_yx[0][0] > screen_height) {
                 ballUp=false;
                 ball_vel_y = -ball_vel_y;
             }
 
-            if(ball_x < 0 || ball_x > screen_width) {
-                QuickGame_Audio_Play(fail, 0);
+            if(ball_yx[0][1] < 0 || ball_yx[0][1] > screen_width) {
                 checkDeath();
-                // ballRight=!ballRight;
             }
         break;
     case PAUSED :
@@ -729,7 +763,7 @@ void update(double dt) {
             current_state = VIEWING_ENDING;
         break;
     case VIEWING_ENDING:
-        ball_x = 500.0f;
+        ball_yx[0][1] = 500.0f;
         update_ending_scroll(dt);
         if(show_final_screen && QuickGame_Button_Pressed(PSP_CTRL_START)) {
             reset_game_completely();
@@ -747,6 +781,169 @@ void update(double dt) {
         if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
             reset_game_completely();
         break;
+    case ENDLESS_LOADED_NOT_STARTED :
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)){
+                scroll_bg = true;
+                ball_vel = 100.0f;
+                ball_yx[1][1] = 260;
+                ball_yx[1][0] = 187;
+                ball_yx[2][1] = 280;
+                ball_yx[2][0] = 187;
+                ball_yx[3][1] = 300;
+                ball_yx[3][0] = 187;
+                randomize_level_variables();
+                randomize_obstacles();
+                current_state = ENDLESS_STARTED;
+            }
+            break;
+    case ENDLESS_STARTED :
+            if(QuickGame_Button_Pressed(PSP_CTRL_START)) {
+                current_state = ENDLESS_PAUSED;
+                break;
+            }
+
+            if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], endBall)){
+                animate_runComplete();
+            } else {
+                update_ball(dt);
+            }
+            if(allowGlitch && QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
+                    randomize_level_variables();
+            }
+
+            if(!faceControls) {
+                if(QuickGame_Button_Held(PSP_CTRL_LTRIGGER)){
+                    if(QuickGame_Button_Held(PSP_CTRL_UP) && (pinkPaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
+                        pinkPaddle_y += vel_paddle;
+                    }
+                    if(QuickGame_Button_Held(PSP_CTRL_DOWN) && (pinkPaddle_y > paddle_height - (paddle_height/2.0f))){
+                        pinkPaddle_y -= vel_paddle;
+                    }
+                }
+
+                if(QuickGame_Button_Held(PSP_CTRL_RTRIGGER)){
+                    if(QuickGame_Button_Held(PSP_CTRL_UP) && (bluePaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
+                        bluePaddle_y += vel_paddle;
+                    }
+                    if(QuickGame_Button_Held(PSP_CTRL_DOWN) && (bluePaddle_y > paddle_height - (paddle_height/2.0f))){
+                        bluePaddle_y -= vel_paddle;
+                    }
+                }
+            } else {
+                if(QuickGame_Button_Held(PSP_CTRL_UP) && (pinkPaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
+                    pinkPaddle_y += vel_paddle;
+                }
+                if(QuickGame_Button_Held(PSP_CTRL_DOWN) && (pinkPaddle_y > paddle_height - (paddle_height/2.0f))){
+                    pinkPaddle_y -= vel_paddle;
+                }
+
+                if(QuickGame_Button_Held(PSP_CTRL_TRIANGLE) && (bluePaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
+                    bluePaddle_y += vel_paddle;
+                }
+                if(QuickGame_Button_Held(PSP_CTRL_CROSS) && (bluePaddle_y > paddle_height - (paddle_height/2.0f))){
+                    bluePaddle_y -= vel_paddle;
+                }
+            }
+
+            if(collision_delay >= 0) {
+                collision_delay--;
+            } else {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], pinkPaddle)) {
+                    QuickGame_Audio_Play(ping, 0);
+                    if(complexPhysics) {
+                        ball_vel_x = -ball_vel_x;
+                        ball_vel_y = ball_vel_y - (pinkPaddle_y - ball_yx[0][0]) * 5;
+                    } else {
+                        ballRight = !ballRight;
+                    }
+                    collision_delay = 5;
+                    current_score++;
+                }
+                
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], wall)) {
+                    QuickGame_Audio_Play(pong, 0);
+                    direction = QuickGame_Sprite_Intersect_Direction(animBall[0][curr_ball_anim], wall);
+                    if(complexPhysics) {
+                        if(direction == QG_DIR_LEFT || direction == QG_DIR_RIGHT) {
+                            ball_vel_x = -ball_vel_x;
+                        } 
+                        ball_vel_y = ball_vel_y - (wall_y - ball_yx[0][0]) * 5;
+                    } else {
+                        if(direction == QG_DIR_LEFT || direction == QG_DIR_RIGHT) {
+                            ballRight = !ballRight;
+                        } else {
+                            ballUp = !ballUp;
+                        }
+
+                    }
+                    collision_delay = 5;
+                }
+
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], flipPad)) {
+                    QuickGame_Audio_Play(pong, 0);
+                    glitched = !glitched;
+                    collision_delay = 12;
+                }
+
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], bluePaddle)) {
+                    QuickGame_Audio_Play(ping, 0);
+                    if(complexPhysics) {
+                        ball_vel_x = -ball_vel_x;
+                        ball_vel_y = ball_vel_y - (bluePaddle_y - ball_yx[0][0]) * 5;
+                    } else {
+                        ballRight = !ballRight;
+                    }
+                    collision_delay = 5;
+                    current_score++;
+                }
+
+            }
+
+            if(QuickGame_Timer_Elapsed(&timer) >= wall_timer){
+                animate_wall();
+            }
+
+            if(QuickGame_Timer_Elapsed(&timer) >= flipPad_timer){
+                animate_flipPad();
+            }
+
+            if(ball_yx[0][0] < ball_height) {
+                ballUp=true;
+                ball_vel_y = -ball_vel_y;
+            }
+
+            if(ball_yx[0][0] > screen_height) {
+                ballUp=false;
+                ball_vel_y = -ball_vel_y;
+            }
+
+            if(wall_y < 0) {
+                randomize_wall();
+            }
+
+            if( flipPad_y < 0) {
+                randomize_flip();
+            }
+
+            if(ball_yx[0][1] < 0 || ball_yx[0][1] > screen_width) {
+                checkDeath();
+            }
+        break;
+    case ENDLESS_PAUSED :
+        if (QuickGame_Button_Pressed(PSP_CTRL_START)) {
+            current_state = ENDLESS_STARTED;
+        }
+        if (QuickGame_Button_Pressed(PSP_CTRL_CROSS)) {
+            reset_game_completely();
+            current_state = VIEWING_START;
+        }
+        break;
+    case ENDLESS_COMPLETE:
+        if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
+            reset_game_completely();
+            current_state = VIEWING_START;
+        }
+        break;
     }
 }
 
@@ -759,27 +956,32 @@ void draw() {
     switch(current_state) {
         case VIEWING_SETTINGS :
             QuickGame_Sprite_Draw(settingsScreen);
-            QuickGame_Sprite_Draw(animBall0[curr_ball_anim]);
-            QuickGame_Sprite_Draw(animBall1[curr_ball_anim]);
-            QuickGame_Sprite_Draw(animBall2[curr_ball_anim]);
-            QuickGame_Sprite_Draw(animBall3[curr_ball_anim]);
+            for(int i = 0; i < 6; i++){
+                QuickGame_Sprite_Draw(animBall[i][curr_ball_anim]);
+            }
             break;
         case VIEWING_CREDITS :
             QuickGame_Sprite_Draw(credits[currentCredit]);
             break;
         case VIEWING_START :
             QuickGame_Sprite_Draw(startScreen);
+            QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
             break;
-        case STARTED :
-            QuickGame_Sprite_Draw(endNode);
-            QuickGame_Sprite_Draw(endBall);
-            QuickGame_Sprite_Draw(wall);
-            QuickGame_Sprite_Draw(flipPad);
-            break;
+        case PAUSED:
         case LOADED_NOT_STARTED :
             draw_remaining_attempts();
             QuickGame_Sprite_Draw(mission[currentMission-1]);
             QuickGame_Sprite_Draw(run[currentRun-1]);
+        case STARTED :
+            QuickGame_Sprite_Draw(endNode);
+            QuickGame_Sprite_Draw(endBall);
+        case ENDLESS_LOADED_NOT_STARTED:
+        case ENDLESS_STARTED:
+            QuickGame_Sprite_Draw(wall);
+            QuickGame_Sprite_Draw(flipPad);
+            QuickGame_Sprite_Draw(pinkPaddle);
+            QuickGame_Sprite_Draw(bluePaddle);
+            QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
             break;
         case MOSTLY_DEAD:
             draw_remaining_attempts();
@@ -804,12 +1006,11 @@ void draw() {
                 QuickGame_Sprite_Draw(gameCompleteScrollScreen);
             }
             break;
+        case ENDLESS_COMPLETE:
+            draw_score();
+            break;
 
     }
-
-    QuickGame_Sprite_Draw(pinkPaddle);
-    QuickGame_Sprite_Draw(bluePaddle);
-    QuickGame_Sprite_Draw(animBall[curr_ball_anim]);
 
     QuickGame_Graphics_End_Frame(true);
 }
@@ -879,16 +1080,14 @@ void load_sprites() {
         credits[i] = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, creditsTex);
     }
 
-    for(int i = 0; i < 7; i++){
+    for(int j = 0; j < 7; j++){
         char filename[256];
-        sprintf(filename, "./assets/sprites/ball/%d.png", i);
+        sprintf(filename, "./assets/sprites/ball/%d.png", j);
 
         QGTexInfo ballTex = { .filename = filename, .flip = true, .vram = 0 };
-        animBall[i] = QuickGame_Sprite_Create_Contained(160, 136, 14, 14, ballTex);
-        animBall0[i] = QuickGame_Sprite_Create_Contained(260, 187, 14, 14, ballTex);
-        animBall1[i] = QuickGame_Sprite_Create_Contained(280, 187, 14, 14, ballTex);
-        animBall2[i] = QuickGame_Sprite_Create_Contained(300, 187, 14, 14, ballTex);
-        animBall3[i] = QuickGame_Sprite_Create_Contained(320, 187, 14, 14, ballTex);
+        for(int i = 0; i < 6; i++){
+            animBall[i][j] = QuickGame_Sprite_Create_Contained(160, 136, 14, 14, ballTex);
+        }
     }
 
     for(int i = 0; i < 3; i++){
@@ -905,6 +1104,14 @@ void load_sprites() {
 
         QGTexInfo runTex = { .filename = filename, .flip = true, .vram = 0 };
         run[i] = QuickGame_Sprite_Create_Contained(240, 150, 174, 21, runTex);
+    }
+
+    for(int i = 0; i < 10; i++){
+        char filename[256];
+        sprintf(filename, "./assets/sprites/nums/%d.png", i);
+
+        QGTexInfo sc = { .filename = filename, .flip = true, .vram = 0 };
+        nums[i] = QuickGame_Sprite_Create_Contained(240, 136, 32, 64, sc);
     }
 }
 
