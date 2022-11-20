@@ -170,40 +170,32 @@ void draw_remaining_attempts() {
     for(int i = 0; i < remainingAttempts; i++){
         QuickGame_Sprite_Draw(animBall[i+1][curr_ball_anim]);
     }
-
     QuickGame_Sprite_Draw(attempts);
 }
 
 void draw_ending_scroll() {
     glTexOffset(0.0f, timer.total * -0.025f);
     QuickGame_Sprite_Draw(gameCompleteScrollScreen);
-
     glTexOffset(0.0f, 0.0f);
 }
 
 void draw_score(){
-    int s = current_score;
-
-    int digits = 0;
-    while(s > 0){
-        s /= 10;
-        digits++;
-    }
+    int digits = snprintf( NULL, 0, "%d", current_score);
 
     float xoff = -((float)digits-1) / 2.0f;
-    xoff *= 24.0f;
+    xoff *= 32.0f;
 
     float xn = 0.0f;
 
-    s = current_score;
-    while(s > 0){
+    int s = current_score;
+    for(int i = 0; i < digits; i++){
         int c = s % 10;
         s /= 10;
 
         nums[c]->transform.position.x = -xoff + 240 - xn;
         nums[c]->transform.position.y = 192;
 
-        xn += 24.0f;
+        xn += 32.0f;
 
         QuickGame_Sprite_Draw(nums[c]);
     }
