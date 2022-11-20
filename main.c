@@ -962,6 +962,7 @@ void draw() {
             QuickGame_Sprite_Draw(startScreen);
             QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
             break;
+        case PAUSED:
         case LOADED_NOT_STARTED :
             draw_remaining_attempts();
             QuickGame_Sprite_Draw(mission[currentMission-1]);
