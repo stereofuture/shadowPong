@@ -45,12 +45,7 @@ QGSprite_t startScreen, settingsScreen
 , packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen, finalScreen;
 QGSprite_t credits[5];
 QGSprite_t score[10];
-QGSprite_t animBall[7];
-QGSprite_t animBall0[7];
-QGSprite_t animBall1[7];
-QGSprite_t animBall2[7];
-QGSprite_t animBall3[7];
-QGSprite_t animBall4[7];
+QGSprite_t animBall[6][7];
 QGSprite_t run[5];
 QGSprite_t mission[3];
 QGSprite_t nums[10];
@@ -142,7 +137,6 @@ float vel_max = 300.0f;
 int collision_delay = 0;
 int currentCredit = 0;
 int difficultyLevel = 1;
-float end_animation_length = 5.0f;
 
 bool faceControls = false;
 bool allowGlitch = false;
@@ -178,16 +172,8 @@ void draw_bg_scroll() {
 }
 
 void draw_remaining_attempts() {
-    if(remainingAttempts > 2) {
-        QuickGame_Sprite_Draw(animBall2[curr_ball_anim]);
-    }
-
-    if(remainingAttempts > 1) {
-        QuickGame_Sprite_Draw(animBall1[curr_ball_anim]);;
-    }
-
-    if(remainingAttempts > 0) {
-        QuickGame_Sprite_Draw(animBall0[curr_ball_anim]);
+    for(int i = 0; i < remainingAttempts; i++){
+        QuickGame_Sprite_Draw(animBall[i+1][curr_ball_anim]);
     }
 
     QuickGame_Sprite_Draw(attempts);
@@ -385,23 +371,23 @@ void animate_flipPad() {
 }
 
 void animation_update() {
-    animBall[curr_ball_anim]->transform.position.y = ball_y;
-    animBall[curr_ball_anim]->transform.position.x = ball_x;
+    animBall[0][curr_ball_anim]->transform.position.y = ball_y;
+    animBall[0][curr_ball_anim]->transform.position.x = ball_x;
 
-    animBall0[curr_ball_anim]->transform.position.y = ball0_y;
-    animBall0[curr_ball_anim]->transform.position.x = ball0_x;
+    animBall[1][curr_ball_anim]->transform.position.y = ball0_y;
+    animBall[1][curr_ball_anim]->transform.position.x = ball0_x;
 
-    animBall1[curr_ball_anim]->transform.position.y = ball1_y;
-    animBall1[curr_ball_anim]->transform.position.x = ball1_x;
+    animBall[2][curr_ball_anim]->transform.position.y = ball1_y;
+    animBall[2][curr_ball_anim]->transform.position.x = ball1_x;
     
-    animBall2[curr_ball_anim]->transform.position.y = ball2_y;
-    animBall2[curr_ball_anim]->transform.position.x = ball2_x;
+    animBall[3][curr_ball_anim]->transform.position.y = ball2_y;
+    animBall[3][curr_ball_anim]->transform.position.x = ball2_x;
 
-    animBall3[curr_ball_anim]->transform.position.y = ball3_y;
-    animBall3[curr_ball_anim]->transform.position.x = ball3_x;
+    animBall[4][curr_ball_anim]->transform.position.y = ball3_y;
+    animBall[4][curr_ball_anim]->transform.position.x = ball3_x;
 
-    animBall4[curr_ball_anim]->transform.position.y = ball4_y;
-    animBall4[curr_ball_anim]->transform.position.x = ball4_x;
+    animBall[5][curr_ball_anim]->transform.position.y = ball4_y;
+    animBall[5][curr_ball_anim]->transform.position.x = ball4_x;
 
     pinkPaddle->transform.position.y = pinkPaddle_y;
     bluePaddle->transform.position.y = bluePaddle_y;
@@ -647,7 +633,7 @@ void update(double dt) {
                 break;
             }
 
-            if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], endBall)){
+            if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], endBall)){
                 animate_runComplete();
             } else {
                 update_ball(dt);
@@ -693,7 +679,7 @@ void update(double dt) {
             if(collision_delay >= 0) {
                 collision_delay--;
             } else {
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], pinkPaddle)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], pinkPaddle)) {
                     QuickGame_Audio_Play(ping, 0);
                     if(complexPhysics) {
                         ball_vel_x = -ball_vel_x;
@@ -704,9 +690,9 @@ void update(double dt) {
                     collision_delay = 5;
                 }
                 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], wall)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], wall)) {
                     QuickGame_Audio_Play(pong, 0);
-                    direction = QuickGame_Sprite_Intersect_Direction(animBall[curr_ball_anim], wall);
+                    direction = QuickGame_Sprite_Intersect_Direction(animBall[0][curr_ball_anim], wall);
                     if(complexPhysics) {
                         if(direction == QG_DIR_LEFT || direction == QG_DIR_RIGHT) {
                             ball_vel_x = -ball_vel_x;
@@ -723,13 +709,13 @@ void update(double dt) {
                     collision_delay = 5;
                 }
 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], flipPad)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], flipPad)) {
                     QuickGame_Audio_Play(pong, 0);
                     glitched = !glitched;
                     collision_delay = 12;
                 }
 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], bluePaddle)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], bluePaddle)) {
                     QuickGame_Audio_Play(ping, 0);
                     if(complexPhysics) {
                         ball_vel_x = -ball_vel_x;
@@ -827,7 +813,7 @@ void update(double dt) {
                 break;
             }
 
-            if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], endBall)){
+            if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], endBall)){
                 animate_runComplete();
             } else {
                 update_ball(dt);
@@ -873,7 +859,7 @@ void update(double dt) {
             if(collision_delay >= 0) {
                 collision_delay--;
             } else {
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], pinkPaddle)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], pinkPaddle)) {
                     QuickGame_Audio_Play(ping, 0);
                     if(complexPhysics) {
                         ball_vel_x = -ball_vel_x;
@@ -885,9 +871,9 @@ void update(double dt) {
                     current_score++;
                 }
                 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], wall)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], wall)) {
                     QuickGame_Audio_Play(pong, 0);
-                    direction = QuickGame_Sprite_Intersect_Direction(animBall[curr_ball_anim], wall);
+                    direction = QuickGame_Sprite_Intersect_Direction(animBall[0][curr_ball_anim], wall);
                     if(complexPhysics) {
                         if(direction == QG_DIR_LEFT || direction == QG_DIR_RIGHT) {
                             ball_vel_x = -ball_vel_x;
@@ -904,13 +890,13 @@ void update(double dt) {
                     collision_delay = 5;
                 }
 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], flipPad)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], flipPad)) {
                     QuickGame_Audio_Play(pong, 0);
                     glitched = !glitched;
                     collision_delay = 12;
                 }
 
-                if(QuickGame_Sprite_Intersects(animBall[curr_ball_anim], bluePaddle)) {
+                if(QuickGame_Sprite_Intersects(animBall[0][curr_ball_anim], bluePaddle)) {
                     QuickGame_Audio_Play(ping, 0);
                     if(complexPhysics) {
                         ball_vel_x = -ball_vel_x;
@@ -982,11 +968,9 @@ void draw() {
     switch(current_state) {
         case VIEWING_SETTINGS :
             QuickGame_Sprite_Draw(settingsScreen);
-            QuickGame_Sprite_Draw(animBall0[curr_ball_anim]);
-            QuickGame_Sprite_Draw(animBall1[curr_ball_anim]);
-            QuickGame_Sprite_Draw(animBall2[curr_ball_anim]);
-            QuickGame_Sprite_Draw(animBall3[curr_ball_anim]);
-            QuickGame_Sprite_Draw(animBall4[curr_ball_anim]);
+            for(int i = 0; i < 6; i++){
+                QuickGame_Sprite_Draw(animBall[i][curr_ball_anim]);
+            }
             break;
         case VIEWING_CREDITS :
             QuickGame_Sprite_Draw(credits[currentCredit]);
@@ -1037,7 +1021,7 @@ void draw() {
 
     QuickGame_Sprite_Draw(pinkPaddle);
     QuickGame_Sprite_Draw(bluePaddle);
-    QuickGame_Sprite_Draw(animBall[curr_ball_anim]);
+    QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
 
     QuickGame_Graphics_End_Frame(true);
 }
@@ -1107,17 +1091,14 @@ void load_sprites() {
         credits[i] = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, creditsTex);
     }
 
-    for(int i = 0; i < 7; i++){
+    for(int j = 0; j < 7; j++){
         char filename[256];
-        sprintf(filename, "./assets/sprites/ball/%d.png", i);
+        sprintf(filename, "./assets/sprites/ball/%d.png", j);
 
         QGTexInfo ballTex = { .filename = filename, .flip = true, .vram = 0 };
-        animBall[i] = QuickGame_Sprite_Create_Contained(160, 136, 14, 14, ballTex);
-        animBall0[i] = QuickGame_Sprite_Create_Contained(260, 187, 14, 14, ballTex);
-        animBall1[i] = QuickGame_Sprite_Create_Contained(280, 187, 14, 14, ballTex);
-        animBall2[i] = QuickGame_Sprite_Create_Contained(300, 187, 14, 14, ballTex);
-        animBall3[i] = QuickGame_Sprite_Create_Contained(320, 187, 14, 14, ballTex);
-        animBall4[i] = QuickGame_Sprite_Create_Contained(320, 187, 14, 14, ballTex);
+        for(int i = 0; i < 6; i++){
+            animBall[i][j] = QuickGame_Sprite_Create_Contained(160, 136, 14, 14, ballTex);
+        }
     }
 
     for(int i = 0; i < 3; i++){
