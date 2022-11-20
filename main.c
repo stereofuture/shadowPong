@@ -27,7 +27,7 @@ TODOS
 /*
 POST TODOS
 4. Add checks to move obstalce to ensure they don't overlap node and eachother
-12. Add powerups (speed boost, paddle embiggener)
+12. Add powerups (speed boost, paddle embiggener, multiball)
 13. Add pause quit instruction screen
 15. Add scroll speed
 15a. Synch music with scroll speed
@@ -220,11 +220,21 @@ void update_ending_scroll(double dt) {
     }
 }
 
-void randomize_obstacles() {
-    wall_timer = fmod(rand(), run_length);
-    wall_x = 120 + rand() % 240;
+void randomize_flip() {
     flipPad_timer = fmod(rand(), run_length);
+    flipPad_y = 300.0f + fmod(rand(),100.0f);
     flipPad_x = 180 + rand() % 120;
+}
+
+void randomize_wall() {
+    wall_timer = fmod(rand(), run_length);
+    wall_y = 300.0f + fmod(rand(),100.0f);
+    wall_x = 120 + rand() % 240;
+}
+
+void randomize_obstacles() {
+    randomize_flip();
+    randomize_wall();
 }
 
 void randomize_level_variables() {
@@ -911,11 +921,12 @@ void update(double dt) {
                 ball_vel_y = -ball_vel_y;
             }
 
-            if(wall_y < 0  && flipPad_y < 0) {
-                randomize_obstacles();
-                wall_y = 300.0f + fmod(rand(),100.0f);
-                flipPad_y = 300.0f + fmod(rand(),100.0f);
+            if(wall_y < 0) {
+                randomize_wall();
+            }
 
+            if( flipPad_y < 0) {
+                randomize_flip();
             }
 
             if(ball_yx[0][1] < 0 || ball_yx[0][1] > screen_width) {
@@ -970,10 +981,10 @@ void draw() {
         case STARTED :
             QuickGame_Sprite_Draw(endNode);
             QuickGame_Sprite_Draw(endBall);
-            QuickGame_Sprite_Draw(wall);
-            QuickGame_Sprite_Draw(flipPad);
         case ENDLESS_LOADED_NOT_STARTED:
         case ENDLESS_STARTED:
+            QuickGame_Sprite_Draw(wall);
+            QuickGame_Sprite_Draw(flipPad);
             QuickGame_Sprite_Draw(pinkPaddle);
             QuickGame_Sprite_Draw(bluePaddle);
             QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
