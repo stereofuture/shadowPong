@@ -105,17 +105,17 @@ int selectedStartOption;
 int selectedSettingsOption;
 
 int startMenuOptionCoords[3][2] = {
-    {174, 130},
-    {148, 116},
-    {160, 102}
+    {172, 130},
+    {146, 115},
+    {158, 100}
 };
 
 int settingsMenuOptionCoords[5][2] = {
-    {14, 175},
-    {14, 160},
-    {14, 145},
-    {14, 130},
-    {14, 115}
+    {14, 174},
+    {14, 159},
+    {14, 144},
+    {14, 129},
+    {14, 114}
 };
 
 float paddle_height = 50.0f;
@@ -123,8 +123,8 @@ float endNode_width = 22.0f;
 float screen_height = 272.0f;
 float screen_width = 480.0f;
 float vel_paddle = 5.0f;
-float left_paddle_lane_x = 10.0f;
-float right_paddle_lane_x = 473.0f;
+float left_paddle_lane_x = 13.0f;
+float right_paddle_lane_x = 470.0f;
 float ball_height = 7.0f;
 // ~35s for max starting at 100.0f and +0.1f
 //  ~11s for max starting at 100.0f and +0.3f
@@ -270,6 +270,8 @@ void randomize_level_variables() {
 void reset_game() {
     ball_yx[0][0] = 136.0f;
     ball_yx[0][1] = 240.0f;
+    for(int i=1; i<6; i++)
+        ball_yx[i][0] = -30.0f;
     pinkPaddle_y = 136.0f;
     bluePaddle_y = 136.0f;
     wall_y = 300.0f;
@@ -390,8 +392,8 @@ void animation_update() {
 
     endNode->transform.position.y = endNode_y;
     endNode->transform.position.x = endNode_x;
-    endBall->transform.position.y = endNode_y - 3;
-    endBall->transform.position.x = endNode_x - 3;
+    endBall->transform.position.y = endNode_y;
+    endBall->transform.position.x = endNode_x;
 
     if(glitched == true) {
         bluePaddle->transform.position.x = left_paddle_lane_x;
@@ -404,8 +406,8 @@ void animation_update() {
 
 void animate_runComplete() {
 
-    float endNode_center_y = endNode_y - 3;
-    float endNode_center_x = endNode_x - 3;
+    float endNode_center_y = endNode_y;
+    float endNode_center_x = endNode_x;
 
     if ((endNode_center_y - 0.2f) > ball_yx[0][0] || (endNode_center_y + 0.2f) < ball_yx[0][0]) {
 
@@ -505,11 +507,8 @@ void update(double dt) {
             }
             break;
         case VIEWING_SETTINGS :
-            ball_yx[1][0] = 175;
-            ball_yx[2][0] = 160;
-            ball_yx[3][0] = 145;
-            ball_yx[4][0] = 130;
-            ball_yx[5][0] = 115;
+            for(int i = 0; i < 5; i++)
+                ball_yx[i+1][0] = settingsMenuOptionCoords[i][1];
 
             selectedSettingsOption = update_selected_menu_option(selectedSettingsOption, 5);
             ball_yx[0][1] = settingsMenuOptionCoords[selectedSettingsOption-1][0];
@@ -586,16 +585,13 @@ void update(double dt) {
             if(QuickGame_Button_Pressed(PSP_CTRL_CROSS)) {
                 current_state = VIEWING_START;
                 selectedSettingsOption = 1;
-                ball_yx[1][0] = -20;
-                ball_yx[2][0] = -20;
-                ball_yx[3][0] = -20;
-                ball_yx[4][0] = -20;
-                ball_yx[5][0] = -20;
+                for(int i=1; i<6; i++)
+                    ball_yx[i][0] = -30.0f;
             }
             break;
         case VIEWING_CREDITS :
-            ball_yx[0][1] = -20;
-            ball_yx[0][0] = -20;
+            ball_yx[0][1] = -30.0f;
+            ball_yx[0][0] = -30.0f;
             if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
                 currentCredit++;
                 if(currentCredit > 4) {
@@ -607,12 +603,12 @@ void update(double dt) {
             if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)){
                 scroll_bg = true;
                 ball_vel = 100.0f;
-                ball_yx[1][1] = 260;
-                ball_yx[1][0] = 187;
-                ball_yx[2][1] = 280;
-                ball_yx[2][0] = 187;
-                ball_yx[3][1] = 300;
-                ball_yx[3][0] = 187;
+                ball_yx[1][1] = 318;
+                ball_yx[1][0] = 188;
+                ball_yx[2][1] = 338;
+                ball_yx[2][0] = 188;
+                ball_yx[3][1] = 358;
+                ball_yx[3][0] = 188;
                 randomize_level_variables();
                 randomize_obstacles();
                 current_state = STARTED;
@@ -635,7 +631,7 @@ void update(double dt) {
 
             if(!faceControls) {
                 if(QuickGame_Button_Held(PSP_CTRL_LTRIGGER)){
-                    if(QuickGame_Button_Held(PSP_CTRL_UP) && (pinkPaddle_y < screen_height - (paddle_height/2.0f) + 10.0f)){
+                    if(QuickGame_Button_Held(PSP_CTRL_UP) && (pinkPaddle_y < screen_height - (paddle_height/2.0f))){
                         pinkPaddle_y += vel_paddle;
                     }
                     if(QuickGame_Button_Held(PSP_CTRL_DOWN) && (pinkPaddle_y > paddle_height - (paddle_height/2.0f))){
@@ -1095,7 +1091,7 @@ void load_sprites() {
         sprintf(filename, "./assets/sprites/mission/%d.png", i);
 
         QGTexInfo missionTex = { .filename = filename, .flip = true, .vram = 0 };
-        mission[i] = QuickGame_Sprite_Create_Contained(240, 170, 174, 21, missionTex);
+        mission[i] = QuickGame_Sprite_Create_Contained(240, 162, 174, 21, missionTex);
     }
 
     for(int i = 0; i < 5; i++){
@@ -1103,7 +1099,7 @@ void load_sprites() {
         sprintf(filename, "./assets/sprites/run/%d.png", i);
 
         QGTexInfo runTex = { .filename = filename, .flip = true, .vram = 0 };
-        run[i] = QuickGame_Sprite_Create_Contained(240, 150, 174, 21, runTex);
+        run[i] = QuickGame_Sprite_Create_Contained(240, 136, 174, 21, runTex);
     }
 
     for(int i = 0; i < 10; i++){
