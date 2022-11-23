@@ -11,8 +11,6 @@
 
 /*
 TODOS
-6. Improve sprite detail
-6b. Animate end node
 7. Animate title with paddle H
 9. Add story messages
 17. Clean up
@@ -38,7 +36,7 @@ WONTDOS
 16. Re-implement char overflowable_ball_vel
 */
 
-QGSprite_t bg, bgFore, attempts, pinkPaddle, bluePaddle, ball, endNode, endBall, wall, flipPad;
+QGSprite_t bg, bgFore, attempts, pinkPaddle, bluePaddle, endBall, wall, flipPad;
 QGSprite_t startScreen, settingsScreen
 , packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen, finalScreen;
 QGSprite_t blueSplashTop[6], blueSplashBottom[6];
@@ -49,6 +47,7 @@ QGSprite_t animBall[6][7];
 QGSprite_t run[5];
 QGSprite_t mission[3];
 QGSprite_t nums[10];
+QGSprite_t endNode[29];
 
 enum QGDirection direction;
 
@@ -147,6 +146,9 @@ int curr_ball_anim = 0;
 float anim_time = 0.0f;
 int curr_splash_anim = 0;
 float splash_anim_time = 0.0f;
+int curr_endNode_anim = 0;
+float endNode_anim_time = 0.0f;
+
 float scroll_time = 0.0f;
 
 void animate_ball(double dt) {
@@ -173,6 +175,25 @@ void animate_splash(double dt) {
             show_blue_splash = false;
             show_pink_splash = false;
         }
+    }
+}
+
+void animate_endNode(double dt) {
+    if(endNode_y < screen_height + 32.0f) {
+        endNode_anim_time += dt;
+
+        if(endNode_anim_time > 0.12f) {
+            curr_endNode_anim++;
+            endNode_anim_time = 0.0f;
+
+            if(curr_endNode_anim == 29)
+                curr_endNode_anim = 0;
+        }
+    }
+    if(endNode_y > 120.0f) {
+        endNode_y -= 1.0f;
+    } else {
+        scroll_bg = false;
     }
 }
 
@@ -497,14 +518,6 @@ void checkBallCollisions(double dt) {
     }
 }
 
-void animate_endNode() {
-    if(endNode_y > 120.0f) {
-        endNode_y -= 1.0f;
-    } else {
-        scroll_bg = false;
-    }
-}
-
 void animate_wall() {
     wall_y -= 0.2f;
 }
@@ -538,8 +551,10 @@ void animation_update() {
     flipPad->transform.position.y = flipPad_y;
     flipPad->transform.position.x = flipPad_x;
 
-    endNode->transform.position.y = endNode_y;
-    endNode->transform.position.x = endNode_x;
+    for(int i = 0; i < 29; i++){
+        endNode[i]->transform.position.y = endNode_y;
+        endNode[i]->transform.position.x = endNode_x;
+    }
     endBall->transform.position.y = endNode_y;
     endBall->transform.position.x = endNode_x;
 }
@@ -810,7 +825,7 @@ void update(double dt) {
             checkBallCollisions(dt);
 
             if(QuickGame_Timer_Elapsed(&timer) >= run_length){
-                animate_endNode();
+                animate_endNode(dt);
             }
 
             if(QuickGame_Timer_Elapsed(&timer) >= wall_timer && (currentMission - difficultyLevel) > 0){
@@ -938,7 +953,7 @@ void draw() {
             QuickGame_Sprite_Draw(mission[currentMission-1]);
             QuickGame_Sprite_Draw(run[currentRun-1]);
         case STARTED :
-            QuickGame_Sprite_Draw(endNode);
+            QuickGame_Sprite_Draw(endNode[curr_endNode_anim]);
             QuickGame_Sprite_Draw(endBall);
         case ENDLESS_LOADED_NOT_STARTED:
         case ENDLESS_STARTED:
@@ -1007,13 +1022,8 @@ void load_sprites() {
     QGTexInfo flipPadTex = { .filename = "./assets/sprites/flipPad.png", .flip = false, .vram = 0 };
     flipPad = QuickGame_Sprite_Create_Contained(flipPad_x, flipPad_y, 40, 40, flipPadTex);
 
-    QGTexInfo ballTex = { .filename = "./assets/sprites/ball.png", .flip = true, .vram = 0 };
-
     QGTexInfo endBallTex = { .filename = "./assets/sprites/endBall.png", .flip = true, .vram = 0 };
     endBall = QuickGame_Sprite_Create_Contained(160 - 4 , endNode_y, 12, 12, endBallTex);
-
-    QGTexInfo endNodeTex = { .filename = "./assets/sprites/endNode.png", .flip = true, .vram = 0 };
-    endNode = QuickGame_Sprite_Create_Contained(160, endNode_y, 22, 22, endNodeTex);
 
     QGTexInfo attemptsTex = { .filename = "./assets/sprites/attempts.png", .flip = true, .vram = 0 };
     attempts = QuickGame_Sprite_Create_Contained(216, 190, 174, 21, attemptsTex);
@@ -1096,13 +1106,21 @@ void load_sprites() {
         blueSplashBottom[i] = QuickGame_Sprite_Create_Contained(240, 136, 16, 16, splashTex);
     }
 
-        for(int i = 0; i < 6; i++){
+    for(int i = 0; i < 6; i++){
         char filename[256];
         sprintf(filename, "./assets/sprites/pinkSplash/%d.png", i);
 
         QGTexInfo splashTex = { .filename = filename, .flip = false, .vram = 0 };
         pinkSplashTop[i] = QuickGame_Sprite_Create_Contained(240, 136, 16, 16, splashTex);
         pinkSplashBottom[i] = QuickGame_Sprite_Create_Contained(240, 136, 16, 16, splashTex);
+    }
+
+    for(int i = 0; i < 29; i++){
+        char filename[256];
+        sprintf(filename, "./assets/sprites/endNode/%d.png", i);
+
+        QGTexInfo endNodeTex = { .filename = filename, .flip = false, .vram = 0 };
+        endNode[i] = QuickGame_Sprite_Create_Contained(160, endNode_y, 32, 32, endNodeTex);
     }
 }
 
