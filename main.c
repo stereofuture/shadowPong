@@ -11,13 +11,13 @@
 
 /*
 TODOS
-7. Animate title with paddle H
 9. Add story messages
 17. Clean up
 17a. Align variable, asset and sprite naming
 17b. Optimize redundant code (checking flip every update)
 17c. Split into separate files
 17d. Use more loops for sprite creation
+18. Update README
 */ 
 
 /*
@@ -36,8 +36,8 @@ WONTDOS
 16. Re-implement char overflowable_ball_vel
 */
 
-QGSprite_t bg, bgFore, attempts, pinkPaddle, bluePaddle, endBall, wall, flipPad;
-QGSprite_t startScreen, settingsScreen
+QGSprite_t bg, bgFore, attempts, pinkPaddle, bluePaddle, endBall, wall, flipPad, titlePink;
+QGSprite_t startScreen, startWhiteScreen, settingsScreen
 , packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen, finalScreen;
 QGSprite_t blueSplashTop[6], blueSplashBottom[6];
 QGSprite_t pinkSplashTop[6], pinkSplashBottom[6];
@@ -85,6 +85,7 @@ float ball_vel;
 float ball_vel_x, ball_vel_y;
 float ball_paddle_collision_y;
 float ending_scroll_y;
+float titlePink_y;
 float vel_mod;
 float bg_scroll_vel;
 float bg_scroll_offset;
@@ -142,6 +143,8 @@ enum QGFlip splash_flips_bp_tb[4];
 bool show_blue_splash = false;
 bool show_pink_splash = false;
 
+bool startAnimShown = false;
+
 int curr_ball_anim = 0;
 float anim_time = 0.0f;
 int curr_splash_anim = 0;
@@ -194,6 +197,14 @@ void animate_endNode(double dt) {
         endNode_y -= 1.0f;
     } else {
         scroll_bg = false;
+    }
+}
+
+void animate_start() {
+    if(titlePink_y > 167.0f) {
+        titlePink_y -= 1.0f;
+    } else {
+        startAnimShown = true;
     }
 }
 
@@ -388,6 +399,8 @@ void reset_game_completely() {
     ending_scroll_y = -254.0f;
     // First run on any difficulty is always the same length
     run_length = 5.0f;
+    startAnimShown = false;
+    titlePink_y = 300.0f;
 
     QuickGame_Audio_Play(levelMusic2, 1);
 }
@@ -557,6 +570,8 @@ void animation_update() {
     }
     endBall->transform.position.y = endNode_y;
     endBall->transform.position.x = endNode_x;
+
+    titlePink->transform.position.y = titlePink_y;
 }
 
 void animate_runComplete() {
@@ -673,6 +688,9 @@ void update(double dt) {
 
     switch(current_state) {
         case VIEWING_START :
+            if(!startAnimShown) {
+                animate_start();
+            }
             selectedStartOption = update_selected_menu_option(selectedStartOption, 3);
             ball_yx[0][1] = startMenuOptionCoords[selectedStartOption-1][0];
             ball_yx[0][0] = startMenuOptionCoords[selectedStartOption-1][1];
@@ -944,8 +962,14 @@ void draw() {
             QuickGame_Sprite_Draw(credits[currentCredit]);
             break;
         case VIEWING_START :
-            QuickGame_Sprite_Draw(startScreen);
-            QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
+            if (startAnimShown) {
+                QuickGame_Sprite_Draw(startScreen);
+                QuickGame_Sprite_Draw(animBall[0][curr_ball_anim]);
+            } else {
+                QuickGame_Sprite_Draw(titlePink);
+                QuickGame_Sprite_Draw(startWhiteScreen);
+            }
+
             break;
         case PAUSED:
         case LOADED_NOT_STARTED :
@@ -1051,6 +1075,12 @@ void load_sprites() {
 
     QGTexInfo startTex = { .filename = "./assets/sprites/start.png", .flip = true, .vram = 0 };
     startScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, startTex);
+
+    QGTexInfo startWhiteTex = { .filename = "./assets/sprites/startWhite.png", .flip = true, .vram = 0 };
+    startWhiteScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, startWhiteTex);
+
+    QGTexInfo titlePinkTex = { .filename = "./assets/sprites/titlePink.png", .flip = true, .vram = 0 };
+    titlePink = QuickGame_Sprite_Create_Contained(101.5f, 300, 17, 24, titlePinkTex);
 
     QGTexInfo settingsTex = { .filename = "./assets/sprites/options.png", .flip = true, .vram = 0 };
     settingsScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, settingsTex);
