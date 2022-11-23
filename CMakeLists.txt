@@ -15,7 +15,7 @@ if (PLATFORM_PSP)
     create_pbp_file(
         TARGET solopong
         TITLE Pong Solo PSP
-	ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets/sprites/ball.png"
+	ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/assets/sprites/shadow.png"
         BUILD_PRX ON
     )
 endif()
