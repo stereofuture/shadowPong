@@ -11,7 +11,6 @@
 
 /*
 TODOS
-9. Add story messages
 17. Clean up
 17a. Align variable, asset and sprite naming
 17b. Optimize redundant code (checking flip every update)
@@ -38,7 +37,7 @@ WONTDOS
 
 QGSprite_t bg, bgFore, attempts, pinkPaddle, bluePaddle, endBall, wall, flipPad, titlePink;
 QGSprite_t startScreen, startWhiteScreen, settingsScreen
-, packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, gameCompleteScrollScreen, finalScreen;
+, packetlost, gameover, runCompleteScreen, missionCompleteScreen, gameCompleteScreen, finalScreen;
 QGSprite_t blueSplashTop[6], blueSplashBottom[6];
 QGSprite_t pinkSplashTop[6], pinkSplashBottom[6];
 QGSprite_t credits[5];
@@ -48,6 +47,7 @@ QGSprite_t run[5];
 QGSprite_t mission[3];
 QGSprite_t nums[10];
 QGSprite_t endNode[29];
+QGSprite_t scrolls[6];
 
 enum QGDirection direction;
 
@@ -69,7 +69,8 @@ typedef enum {
     MISSION_COMPLETE,
     GAME_COMPLETE,
     ENDLESS_COMPLETE,
-    VIEWING_ENDING,
+    VIEWING_PRE_SCROLL,
+    VIEWING_POST_SCROLL,
     MOSTLY_DEAD,
     ALL_DEAD,
 } GAMESTATE;
@@ -84,7 +85,7 @@ float endNode_y, endNode_x;
 float ball_vel;
 float ball_vel_x, ball_vel_y;
 float ball_paddle_collision_y;
-float ending_scroll_y;
+float scroll_y;
 float titlePink_y;
 float vel_mod;
 float bg_scroll_vel;
@@ -95,12 +96,14 @@ bool glitched;
 bool ballUp;
 bool ballRight;
 bool scroll_bg;
+bool game_complete;
 bool show_final_screen;
 float run_length;
 float flipPad_timer;
 float wall_timer;
 int currentRun;
 int currentMission;
+int current_scroll;
 int remainingAttempts;
 int selectedStartOption;
 int selectedSettingsOption;
@@ -151,8 +154,6 @@ int curr_splash_anim = 0;
 float splash_anim_time = 0.0f;
 int curr_endNode_anim = 0;
 float endNode_anim_time = 0.0f;
-
-float scroll_time = 0.0f;
 
 void animate_ball(double dt) {
     anim_time += dt;
@@ -263,12 +264,6 @@ void draw_remaining_attempts() {
     QuickGame_Sprite_Draw(attempts);
 }
 
-void draw_ending_scroll() {
-    glTexOffset(0.0f, timer.total * -0.025f);
-    QuickGame_Sprite_Draw(gameCompleteScrollScreen);
-    glTexOffset(0.0f, 0.0f);
-}
-
 void draw_score(){
     int digits = snprintf( NULL, 0, "%d", current_score);
 
@@ -291,16 +286,6 @@ void draw_score(){
     }
 }
 
-void update_ending_scroll(double dt) {
-    scroll_time += dt;
-    ending_scroll_y += scroll_time * 0.05f;
-    if(ending_scroll_y > 600.0f) {
-        show_final_screen = true;
-        scroll_time = 0.0f;
-    } else {
-        gameCompleteScrollScreen->transform.position.y = ending_scroll_y;   
-    }
-}
 
 void randomize_flip() {
     flipPad_timer = fmod(rand(), run_length);
@@ -392,20 +377,23 @@ void reset_game_completely() {
     remainingAttempts = 3;
     currentRun = 1;
     current_score = 0;
+    current_scroll = 0;
     selectedStartOption = 1;
     selectedSettingsOption = 1;
     current_state = VIEWING_START;
+    game_complete = false;
     show_final_screen = false;
-    ending_scroll_y = -254.0f;
-    // First run on any difficulty is always the same length
-    run_length = 5.0f;
+    scroll_y = -248.0f;
+    // // First run on any difficulty is always the same length
+    // run_length = 5.0f;
     startAnimShown = false;
     titlePink_y = 300.0f;
 
     QuickGame_Audio_Play(levelMusic2, 1);
 }
 
-void move_to_next_level() {
+
+void move_to_next_run() {
     ball_yx[0][0] = 136.0f;
     ball_yx[0][1] = 240.0f;
     pinkPaddle_y = 136.0f;
@@ -420,10 +408,37 @@ void move_to_next_level() {
     wall_y = 320.0f;
     flipPad_y = 320.0f;
     endNode_y = 400.0f;
-    remainingAttempts = 3;
     // First run - ~3s, Second run - ~ 7s?
     run_length = 5.0f + (difficultyLevel * currentRun * 1.0f);
     vel_max = 300.0f + ((difficultyLevel - 1) * 25.0f);
+}
+
+void move_to_next_level() {
+    move_to_next_run();
+    scroll_y = -248.0f;
+    current_scroll++;
+    remainingAttempts = 3;
+}
+
+void update_scroll() {
+    if(QuickGame_Button_Held(PSP_CTRL_DOWN)) {
+        scroll_y += 0.8f;
+    } else {
+        scroll_y += 0.2f;
+    }
+    if(scroll_y > 600.0f) {
+        if(current_state == VIEWING_PRE_SCROLL) {
+            move_to_next_level();
+        } else if (current_state == VIEWING_POST_SCROLL){
+            current_scroll++;
+            current_state = VIEWING_PRE_SCROLL;
+            scroll_y = -248.0f;
+        } else {
+            show_final_screen = true;
+        }
+    } else {
+        scrolls[current_scroll]->transform.position.y = scroll_y;   
+    }
 }
 
 void checkDeath() {
@@ -699,7 +714,7 @@ void update(double dt) {
                 if(endlessMode) {
                     current_state = ENDLESS_LOADED_NOT_STARTED;
                 } else {
-                    current_state = LOADED_NOT_STARTED;
+                    current_state = VIEWING_PRE_SCROLL;
                 }
                 break;
             }
@@ -808,6 +823,13 @@ void update(double dt) {
                 }
             }
             break;
+        case VIEWING_PRE_SCROLL:
+            ball_yx[0][1] = 500.0f;
+            update_scroll();
+            if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)){
+                move_to_next_level();
+            }
+            break;
         case LOADED_NOT_STARTED :
             if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)){
                 scroll_bg = true;
@@ -867,24 +889,31 @@ void update(double dt) {
             current_state = VIEWING_START;
         }
         break;
+    case GAME_COMPLETE:
+        game_complete = true;
     case RUN_COMPLETE:
+        if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
+            move_to_next_run();
+        break;
     case MISSION_COMPLETE:
         if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
-            move_to_next_level();
+            current_state = VIEWING_POST_SCROLL;
         break;
-    case GAME_COMPLETE:
-        if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) 
-            current_state = VIEWING_ENDING;
-        break;
-    case VIEWING_ENDING:
+    case VIEWING_POST_SCROLL:
         ball_yx[0][1] = 500.0f;
-        update_ending_scroll(dt);
+        update_scroll();
         if(show_final_screen && QuickGame_Button_Pressed(PSP_CTRL_START)) {
             reset_game_completely();
             break;
         }
         if(QuickGame_Button_Pressed(PSP_CTRL_CIRCLE)) {
-            show_final_screen = true;
+            if(game_complete = true) {
+                show_final_screen = true;
+            } else {
+                scroll_y = -248.0f;
+                current_scroll++;
+                current_state = VIEWING_PRE_SCROLL;
+            }
         }
         break;
     case MOSTLY_DEAD:
@@ -1011,11 +1040,12 @@ void draw() {
         case GAME_COMPLETE:
             QuickGame_Sprite_Draw(gameCompleteScreen);
             break;
-        case VIEWING_ENDING:
+        case VIEWING_PRE_SCROLL:
+        case VIEWING_POST_SCROLL:    
             if(show_final_screen) {
                 QuickGame_Sprite_Draw(finalScreen);
             } else {
-                QuickGame_Sprite_Draw(gameCompleteScrollScreen);
+                QuickGame_Sprite_Draw(scrolls[current_scroll]);
             }
             break;
         case ENDLESS_COMPLETE:
@@ -1067,9 +1097,6 @@ void load_sprites() {
     QGTexInfo gameCompleteTex = { .filename = "./assets/sprites/gameComplete.png", .flip = true, .vram = 0 };
     gameCompleteScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, gameCompleteTex);
 
-    QGTexInfo gameCompleteScrollTex = { .filename = "./assets/sprites/gameCompleteScroll.png", .flip = true, .vram = 0 };
-    gameCompleteScrollScreen = QuickGame_Sprite_Create_Contained(240, -512, 512, 512, gameCompleteScrollTex);
-
     QGTexInfo finalScreenTex = { .filename = "./assets/sprites/gameCompleteFinal.png", .flip = true, .vram = 0 };
     finalScreen = QuickGame_Sprite_Create_Contained(274, 136, 360, 40, finalScreenTex);
 
@@ -1084,6 +1111,14 @@ void load_sprites() {
 
     QGTexInfo settingsTex = { .filename = "./assets/sprites/options.png", .flip = true, .vram = 0 };
     settingsScreen = QuickGame_Sprite_Create_Contained(240, 136, 512, 128, settingsTex);
+
+    for(int i = 0; i < 6; i++){
+        char filename[256];
+        sprintf(filename, "./assets/sprites/scrolls/%d.png", i);
+
+        QGTexInfo scrollTex = { .filename = filename, .flip = true, .vram = 0 };
+        scrolls[i] = QuickGame_Sprite_Create_Contained(240, -512, 512, 512,  scrollTex);
+    }
 
     for(int i = 0; i < 5; i++){
         char filename[256];
