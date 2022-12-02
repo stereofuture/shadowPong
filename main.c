@@ -87,7 +87,6 @@ float ball_vel_x, ball_vel_y;
 float ball_paddle_collision_y;
 float scroll_y;
 float titlePink_y;
-float vel_mod;
 float bg_scroll_vel;
 float bg_scroll_offset;
 float bg_back_scroll_offset;
@@ -356,7 +355,6 @@ void reset_game() {
     ball_vel = 0.0f;
     ball_vel_x = 0.0f;
     ball_vel_y = 0.0f;
-    vel_mod = 1.0f;
     endNode_y = 400.0f;
 
     scroll_bg = false;
@@ -384,8 +382,6 @@ void reset_game_completely() {
     game_complete = false;
     show_final_screen = false;
     scroll_y = -248.0f;
-    // // First run on any difficulty is always the same length
-    // run_length = 5.0f;
     startAnimShown = false;
     titlePink_y = 300.0f;
 
@@ -404,7 +400,6 @@ void move_to_next_run() {
     ball_vel = 0.0f;
     ball_vel_x = 0.0f;
     ball_vel_y = 0.0f;
-    vel_mod = 1.0f;
     wall_y = 320.0f;
     flipPad_y = 320.0f;
     endNode_y = 400.0f;
