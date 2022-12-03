@@ -5,8 +5,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pspkernel.h>
-#include <pspdebug.h>
 #include <string.h>
 
 /*
@@ -21,6 +19,7 @@ TODOS
 
 /*
 POST TODOS
+3. Mission Interstitals
 4. Add checks to move obstalce to ensure they don't overlap node and eachother
 6. Animate paddle up and down
 12. Add powerups (speed boost, paddle embiggener, multiball)
@@ -28,11 +27,6 @@ POST TODOS
 15. Add scroll speed
 15a. Synch music with scroll speed
 21. Add Settings option to pause state
-*/
-
-/*
-WONTDOS
-16. Re-implement char overflowable_ball_vel
 */
 
 QGSprite_t bg, bgFore, attempts, pinkPaddle, bluePaddle, endBall, wall, flipPad, titlePink;
@@ -87,7 +81,6 @@ float ball_vel_x, ball_vel_y;
 float ball_paddle_collision_y;
 float scroll_y;
 float titlePink_y;
-float bg_scroll_vel;
 float bg_scroll_offset;
 float bg_back_scroll_offset;
 int current_score;
@@ -284,7 +277,6 @@ void draw_score(){
         QuickGame_Sprite_Draw(nums[c]);
     }
 }
-
 
 void randomize_flip() {
     flipPad_timer = fmod(rand(), run_length);
@@ -1195,7 +1187,6 @@ void load_audio() {
 }
 
 int main(int argc, char *argv[]) {
-    pspDebugScreenInit();
     if(QuickGame_Init() < 0)
         return 1;
 
