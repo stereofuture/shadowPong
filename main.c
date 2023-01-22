@@ -8,11 +8,6 @@
 #include <string.h>
 
 /*
-TODOS
-18. Update README
-*/ 
-
-/*
 POST TODOS
 3. Mission Interstitals
 4. Add checks to move obstalce to ensure they don't overlap node and eachother
